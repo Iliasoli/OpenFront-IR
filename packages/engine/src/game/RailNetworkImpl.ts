@@ -257,6 +257,7 @@ export class RailNetworkImpl implements RailNetwork {
     if (
       ![
         UnitType.City,
+        UnitType.MissileSilo,
         UnitType.Port,
         UnitType.Factory,
         UnitType.OilMine,
@@ -284,6 +285,7 @@ export class RailNetworkImpl implements RailNetwork {
     if (
       ![
         UnitType.City,
+        UnitType.MissileSilo,
         UnitType.Port,
         UnitType.Factory,
         UnitType.OilMine,
@@ -303,20 +305,13 @@ export class RailNetworkImpl implements RailNetwork {
     const minRangeSquared = this.game.config().trainStationMinRange() ** 2;
     const maxPathSize = this.game.config().railroadMaxSize();
 
-    // A City or Port only joins the rail network when a Factory is already in
-    // range (see CityExecution/PortExecution). A Factory always becomes a
-    // station and pulls nearby City/Port/Factory into the network itself, so
-    // it needs no pre-existing factory to connect to.
+    // Factories bootstrap a network from nearby structures. Other eligible
+    // stations may join an existing rail/supply network directly.
     const buildingFactory = unitType === UnitType.Factory;
-    if (
-      !buildingFactory &&
-      !this.game.hasUnitNearby(tile, maxRange, UnitType.Factory)
-    ) {
-      return [];
-    }
 
     const neighbors = this.game.nearbyUnits(tile, maxRange, [
       UnitType.City,
+      UnitType.MissileSilo,
       UnitType.Factory,
       UnitType.Port,
       UnitType.OilMine,
@@ -380,6 +375,7 @@ export class RailNetworkImpl implements RailNetwork {
       this.game.config().trainStationMaxRange(),
       [
         UnitType.City,
+        UnitType.MissileSilo,
         UnitType.Factory,
         UnitType.Port,
         UnitType.OilMine,

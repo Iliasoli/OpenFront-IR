@@ -10,6 +10,12 @@ import { getMode, simpleHash } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { EngineConfig } from "../configuration/EngineConfig";
 import { Execution, Game, Player } from "../game/Game";
+import type { Cluster } from "../game/TrainStation";
+import {
+  resourceProductionIncome,
+  resourceProductionMarkets,
+  type ResourceProductionMarket,
+} from "./utils/ResourceProduction";
 import {
   bumpTraversalGeneration,
   tileTraversalScratch,
@@ -98,6 +104,10 @@ export class PlayerExecution implements Execution {
     this.player.addGold(goldFromWorkers);
 
     const mineIncomeInterval = this.config.mineIncomeInterval();
+    let resourceMarkets: Map<Cluster, ResourceProductionMarket> | undefined;
+    const resourceStationManager =
+      this.mg.railNetwork().stationManager();
+
     for (const unit of this.player.units()) {
       if (
         unit.isUnderConstruction() ||
@@ -112,19 +122,33 @@ export class PlayerExecution implements Execution {
       if ((ticks + unit.id()) % mineIncomeInterval !== 0) {
         continue;
       }
-      const income = this.config.mineIncome(
-        unit.type(),
-        unit.level(),
-        this.player,
-      );
+
+      // Valve 1: bounded trade throughput.
       const cap = this.config.resourceProductionCap(
         unit.type(),
         unit.level(),
+        this.player,
       );
       const remaining = cap - unit.resourceGoldProduced();
       if (remaining <= 0n) {
         continue;
       }
+
+      // Valve 2: the producer must be rail-connected to a local market made
+      // only of Cities, Missile Silos, Factories, and Ports.
+      resourceMarkets ??= resourceProductionMarkets(this.player, this.mg);
+      const station = resourceStationManager.findStation(unit);
+      const market = station?.getCluster();
+      const income = resourceProductionIncome(
+        unit,
+        this.player,
+        this.mg,
+        market === undefined ? undefined : resourceMarkets.get(market),
+      );
+      if (income <= 0n) {
+        continue;
+      }
+
       const credited = income <= remaining ? income : remaining;
       this.player.addGold(credited, unit.tile());
       unit.addResourceGoldProduced(credited);

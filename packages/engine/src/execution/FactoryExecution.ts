@@ -46,6 +46,7 @@ export class FactoryExecution implements Execution {
       this.game.config().trainStationMaxRange(),
       [
         UnitType.City,
+        UnitType.MissileSilo,
         UnitType.Port,
         UnitType.Factory,
         UnitType.OilMine,

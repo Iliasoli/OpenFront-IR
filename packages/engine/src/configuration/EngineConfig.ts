@@ -682,21 +682,43 @@ export class EngineConfig extends Config {
   }
 
   /**
-   * Resource structures have a finite production reserve until a successful
-   * trade shipment refreshes them. The reserve scales with building level so
-   * upgrading still increases total output, while every level has the same
-   * number of production cycles before requiring trade again.
+   * Resource structures carry at most 30 seconds of production. A completed
+   * normal Trade Ship replenishes only 15 seconds of production, never the
+   * entire reserve, so briefly enabling trade cannot create a long passive
+   * payout window.
    */
-  resourceProductionCap(type: UnitType, level: number): Gold {
-    switch (type) {
-      case UnitType.OilMine:
-      case UnitType.GoldMine:
-      case UnitType.DiamondMine:
-      case UnitType.LivestockFarm:
-        return BigInt(250_000 * Math.max(1, Math.floor(level)));
-      default:
-        throw new Error(`Unknown resource production type: ${type}`);
-    }
+  /**
+   * Demand supplied by each connected City, Missile Silo, Factory, or Port
+   * per production interval and per structure level.
+   *
+   * A rail-connected cluster compares this demand against the combined
+   * output capacity of its Oil Mines, Gold Mines, Diamond Mines, and
+   * Livestock Farms. Oversupply lowers the realized income of every producer
+   * in that local market, while zero demand blocks production entirely.
+   */
+  resourceProductionConsumerDemand(level: number): Gold {
+    return 25_000n * BigInt(Math.max(1, level));
+  }
+
+  /** Minimum market price when supply greatly exceeds connected demand. */
+  resourceProductionPriceFloorBps(): number {
+    return 1_000; // 10% of normal income.
+  }
+
+  resourceProductionCap(
+    type: UnitType,
+    level: number,
+    player: PlayerLike,
+  ): Gold {
+    return this.mineIncome(type, level, player) * 6n;
+  }
+
+  resourceProductionTradeRefill(
+    type: UnitType,
+    level: number,
+    player: PlayerLike,
+  ): Gold {
+    return this.mineIncome(type, level, player) * 3n;
   }
 
   mineIncome(

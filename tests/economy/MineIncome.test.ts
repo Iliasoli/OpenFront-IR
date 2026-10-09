@@ -4,8 +4,10 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
+import { FactoryExecution } from "@openfront/engine/execution/FactoryExecution";
 import { PlayerExecution } from "@openfront/engine/execution/PlayerExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
+import { resourceProductionIncome } from "@openfront/engine/execution/utils/ResourceProduction";
 import { setup } from "../util/Setup";
 import { executeTicks } from "../util/utils";
 
@@ -61,29 +63,33 @@ describe("Mine economy", () => {
   });
 
   test("resource structures stop producing at their reserve cap", async () => {
-    const target = game.ref(0, 10);
+    const resourceTile = game.ref(0, 10);
+    const factoryTile = game.ref(0, 30);
+    player.conquer(factoryTile);
+
+    const factory = player.buildUnit(UnitType.Factory, factoryTile, {});
+    game.addExecution(new FactoryExecution(factory));
+
     const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
     player.addGold(oilCost);
-
     game.addExecution(
-      new ConstructionExecution(player, UnitType.OilMine, target),
+      new ConstructionExecution(player, UnitType.OilMine, resourceTile),
     );
-    game.executeNextTick();
-    game.executeNextTick();
+    executeTicks(game, 8);
 
     const mine = player.units(UnitType.OilMine)[0];
     expect(mine).toBeDefined();
 
     executeTicks(game, 1300);
 
-    expect(mine.resourceGoldProduced()).toBe(250_000n);
+    expect(mine.resourceGoldProduced()).toBe(60_000n);
 
     const producedAtCap = mine.resourceGoldProduced();
     executeTicks(game, game.config().mineIncomeInterval() * 2);
     expect(mine.resourceGoldProduced()).toBe(producedAtCap);
   });
 
-  test("resource production reset clears the reserve", async () => {
+  test("a trade refill adds only 15 seconds of production", async () => {
     const target = game.ref(0, 10);
     const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
     player.addGold(oilCost);
@@ -97,33 +103,114 @@ describe("Mine economy", () => {
     const mine = player.units(UnitType.OilMine)[0];
     expect(mine).toBeDefined();
 
-    mine.addResourceGoldProduced(123_456n);
-    expect(mine.resourceGoldProduced()).toBe(123_456n);
+    mine.addResourceGoldProduced(60_000n);
+    expect(mine.resourceGoldProduced()).toBe(60_000n);
 
-    mine.resetResourceGoldProduced();
-    expect(mine.resourceGoldProduced()).toBe(0n);
+    mine.refillResourceGoldProduced(
+      game.config().resourceProductionTradeRefill(
+        UnitType.OilMine,
+        mine.level(),
+        player,
+      ),
+    );
+    expect(mine.resourceGoldProduced()).toBe(30_000n);
   });
 
-  test("constructed mines generate income and are upgraded normally", () => {
-    const target = game.ref(0, 10);
+  test("constructed mines generate income when rail-connected to demand", () => {
+    const resourceTile = game.ref(0, 10);
+    const factoryTile = game.ref(0, 30);
+    player.conquer(factoryTile);
+
+    const factory = player.buildUnit(UnitType.Factory, factoryTile, {});
+    game.addExecution(new FactoryExecution(factory));
+
     const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
     player.addGold(oilCost);
-
     game.addExecution(
-      new ConstructionExecution(player, UnitType.OilMine, target),
+      new ConstructionExecution(player, UnitType.OilMine, resourceTile),
     );
-    game.executeNextTick();
-    game.executeNextTick();
+    executeTicks(game, 8);
 
     const mine = player.units(UnitType.OilMine)[0];
     expect(mine).toBeDefined();
     expect(mine.isUnderConstruction()).toBe(false);
+
+    const station = game.railNetwork().stationManager().findStation(mine);
+    expect(station).not.toBeNull();
+    expect(station!.getCluster()).not.toBeNull();
+    expect(
+      [...station!.getCluster()!.stations].some(
+        (s) => s.unit.type() === UnitType.Factory,
+      ),
+    ).toBe(true);
 
     const before = player.gold();
     for (let i = 0; i < game.config().mineIncomeInterval(); i++) {
       game.executeNextTick();
     }
 
+    expect(player.gold() - before).toBeGreaterThanOrEqual(10_000n);
+  });
+
+  test("resource production is blocked without a rail-connected consumer", () => {
+    const target = game.ref(0, 10);
+    const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
+    player.addGold(oilCost);
+
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.OilMine, target),
+    );
+    executeTicks(game, 8);
+
+    const mine = player.units(UnitType.OilMine)[0];
+    expect(mine).toBeDefined();
+
+    executeTicks(game, game.config().mineIncomeInterval() * 2);
+    expect(mine.resourceGoldProduced()).toBe(0n);
+  });
+
+  test("oversupply lowers mine income instead of creating unlimited passive gold", () => {
+    const mine = player.buildUnit(UnitType.OilMine, game.ref(0, 10), {});
+    const normal = game.config().mineIncome(UnitType.OilMine, 1, player);
+
+    expect(
+      resourceProductionIncome(
+        mine,
+        player,
+        game,
+        { supply: normal * 2n, demand: normal },
+      ),
+    ).toBe(normal / 2n);
+  });
+
+  test("a missile silo can receive rail-connected resource supply", () => {
+    const resourceTile = game.ref(0, 10);
+    const siloTile = game.ref(0, 30);
+    player.conquer(siloTile);
+
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.MissileSilo, siloTile),
+    );
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.OilMine, resourceTile),
+    );
+    executeTicks(game, 8);
+
+    const mine = player.units(UnitType.OilMine)[0];
+    const silo = player.units(UnitType.MissileSilo)[0];
+    expect(mine).toBeDefined();
+    expect(silo).toBeDefined();
+
+    const mineStation = game.railNetwork().stationManager().findStation(mine);
+    expect(mineStation).not.toBeNull();
+    expect(
+      [...mineStation!.getCluster()!.stations].some(
+        (station) => station.unit === silo,
+      ),
+    ).toBe(true);
+
+    const before = player.gold();
+    executeTicks(game, game.config().mineIncomeInterval());
     expect(player.gold() - before).toBeGreaterThanOrEqual(10_000n);
   });
 });
