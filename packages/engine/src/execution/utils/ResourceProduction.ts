@@ -129,3 +129,29 @@ export function resourceProductionIncome(
 
   return (normalIncome * BigInt(realizedBps)) / 10_000n;
 }
+
+
+/**
+ * Refill each active resource structure owned by a player by 15 seconds of
+ * its normal production. A completed normal Trade Ship grants this finite
+ * refill; captured ships never call this function.
+ */
+export function refillResourceProduction(player: Player, game: Game): void {
+  for (const unit of player.units(RESOURCE_PRODUCTION_UNIT_TYPES)) {
+    if (
+      !unit.isActive() ||
+      unit.isUnderConstruction() ||
+      unit.isMarkedForDeletion()
+    ) {
+      continue;
+    }
+
+    unit.refillResourceGoldProduced(
+      game.config().resourceProductionTradeRefill(
+        unit.type(),
+        unit.level(),
+        player,
+      ),
+    );
+  }
+}
