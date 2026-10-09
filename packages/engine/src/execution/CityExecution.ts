@@ -46,7 +46,17 @@ export class CityExecution implements Execution {
       this.mg.config().trainStationMaxRange(),
       UnitType.Factory,
     );
-    if (nearbyFactory) {
+    const nearbyResource = this.mg.nearbyUnits(
+      this.city.tile()!,
+      this.mg.config().trainStationMaxRange(),
+      [
+        UnitType.OilMine,
+        UnitType.GoldMine,
+        UnitType.DiamondMine,
+        UnitType.LivestockFarm,
+      ],
+    ).length > 0;
+    if (nearbyFactory || nearbyResource) {
       this.mg.addExecution(new TrainStationExecution(this.city));
     }
   }
