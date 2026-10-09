@@ -375,6 +375,7 @@ export class RailNetworkImpl implements RailNetwork {
       this.game.config().trainStationMaxRange(),
       [
         UnitType.City,
+        UnitType.MissileSilo,
         UnitType.Factory,
         UnitType.Port,
         UnitType.OilMine,
