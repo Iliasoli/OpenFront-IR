@@ -7,6 +7,7 @@ import { ConstructionExecution } from "@openfront/engine/execution/ConstructionE
 import { PlayerExecution } from "@openfront/engine/execution/PlayerExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { setup } from "../util/Setup";
+import { executeTicks } from "../util/utils";
 
 describe("Mine economy", () => {
   let game: Game;
@@ -57,6 +58,50 @@ describe("Mine economy", () => {
     expect(
       game.config().mineIncome(UnitType.DiamondMine, 4, player),
     ).toBe(100_000n);
+  });
+
+  test("resource structures stop producing at their reserve cap", async () => {
+    const target = game.ref(0, 10);
+    const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
+    player.addGold(oilCost);
+
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.OilMine, target),
+    );
+    game.executeNextTick();
+    game.executeNextTick();
+
+    const mine = player.units(UnitType.OilMine)[0];
+    expect(mine).toBeDefined();
+
+    executeTicks(game, 1300);
+
+    expect(mine.resourceGoldProduced()).toBe(250_000n);
+
+    const producedAtCap = mine.resourceGoldProduced();
+    executeTicks(game, game.config().mineIncomeInterval() * 2);
+    expect(mine.resourceGoldProduced()).toBe(producedAtCap);
+  });
+
+  test("resource production reset clears the reserve", async () => {
+    const target = game.ref(0, 10);
+    const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
+    player.addGold(oilCost);
+
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.OilMine, target),
+    );
+    game.executeNextTick();
+    game.executeNextTick();
+
+    const mine = player.units(UnitType.OilMine)[0];
+    expect(mine).toBeDefined();
+
+    mine.addResourceGoldProduced(123_456n);
+    expect(mine.resourceGoldProduced()).toBe(123_456n);
+
+    mine.resetResourceGoldProduced();
+    expect(mine.resourceGoldProduced()).toBe(0n);
   });
 
   test("constructed mines generate income and are upgraded normally", () => {
