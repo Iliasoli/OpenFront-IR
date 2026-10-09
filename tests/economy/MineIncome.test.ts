@@ -7,6 +7,7 @@ import { ConstructionExecution } from "@openfront/engine/execution/ConstructionE
 import { FactoryExecution } from "@openfront/engine/execution/FactoryExecution";
 import { PlayerExecution } from "@openfront/engine/execution/PlayerExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
+import { resourceProductionIncome } from "@openfront/engine/execution/utils/ResourceProduction";
 import { setup } from "../util/Setup";
 import { executeTicks } from "../util/utils";
 
@@ -173,7 +174,7 @@ describe("Mine economy", () => {
     const normal = game.config().mineIncome(UnitType.OilMine, 1, player);
 
     expect(
-      require("@openfront/engine/execution/utils/ResourceProduction").resourceProductionIncome(
+      resourceProductionIncome(
         mine,
         player,
         game,
