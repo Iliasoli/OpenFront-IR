@@ -150,6 +150,9 @@ export class ConstructionExecution implements Execution {
         break;
       case UnitType.MissileSilo:
         this.mg.addExecution(new MissileSiloExecution(this.structure!));
+        if (!this.structure!.hasTrainStation()) {
+          this.mg.addExecution(new TrainStationExecution(this.structure!));
+        }
         break;
       case UnitType.DefensePost:
         this.mg.addExecution(new DefensePostExecution(this.structure!));
@@ -168,18 +171,30 @@ export class ConstructionExecution implements Execution {
       case UnitType.OilMine:
       case UnitType.GoldMine:
       case UnitType.DiamondMine:
-      case UnitType.LivestockFarm:
-        if (
-          this.mg.hasUnitNearby(
-            this.structure!.tile(),
-            this.mg.config().trainStationMaxRange(),
-            UnitType.Factory,
-          ) &&
-          !this.structure!.hasTrainStation()
-        ) {
+      case UnitType.LivestockFarm: {
+        if (!this.structure!.hasTrainStation()) {
           this.mg.addExecution(new TrainStationExecution(this.structure!));
         }
+
+        // Promote nearby eligible consumers so an existing City/Port/Factory/
+        // Missile Silo can immediately become the rail endpoint for surplus.
+        const nearbyConsumers = this.mg.nearbyUnits(
+          this.structure!.tile(),
+          this.mg.config().trainStationMaxRange(),
+          [
+            UnitType.City,
+            UnitType.MissileSilo,
+            UnitType.Factory,
+            UnitType.Port,
+          ],
+        );
+        for (const { unit } of nearbyConsumers) {
+          if (!unit.hasTrainStation()) {
+            this.mg.addExecution(new TrainStationExecution(unit));
+          }
+        }
         break;
+      }
       default:
         console.warn(
           `unit type ${this.constructionType} cannot be constructed`,
