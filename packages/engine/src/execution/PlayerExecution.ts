@@ -102,7 +102,12 @@ export class PlayerExecution implements Execution {
     this.player.addGold(goldFromWorkers);
 
     const mineIncomeInterval = this.config.mineIncomeInterval();
-    const resourceMarkets = resourceProductionMarkets(this.player, this.mg);
+    let resourceMarkets:
+      | Map<
+          import("../game/TrainStation").Cluster,
+          import("./utils/ResourceProduction").ResourceProductionMarket
+        >
+      | undefined;
     const resourceStationManager =
       this.mg.railNetwork().stationManager();
 
@@ -134,6 +139,7 @@ export class PlayerExecution implements Execution {
 
       // Valve 2: the producer must be rail-connected to a local market made
       // only of Cities, Missile Silos, Factories, and Ports.
+      resourceMarkets ??= resourceProductionMarkets(this.player, this.mg);
       const station = resourceStationManager.findStation(unit);
       const market = station?.getCluster();
       const income = resourceProductionIncome(
