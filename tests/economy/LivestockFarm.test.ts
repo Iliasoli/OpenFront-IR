@@ -4,9 +4,11 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
+import { FactoryExecution } from "@openfront/engine/execution/FactoryExecution";
 import { PlayerExecution } from "@openfront/engine/execution/PlayerExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { setup } from "../util/Setup";
+import { executeTicks as executeTicksForTest } from "../util/utils";
 
 describe("LivestockFarm economy and troop generation", () => {
   let game: Game;
@@ -71,16 +73,29 @@ describe("LivestockFarm economy and troop generation", () => {
     expect(newTroopRate).toBeGreaterThan(baseTroopRate);
   });
 
-  test("constructed livestock farm generates periodic income", () => {
-    const target = game.ref(0, 10);
+  test("constructed livestock farm generates periodic income when rail-connected to demand", () => {
+    const resourceTile = game.ref(0, 10);
+    const factoryTile = game.ref(0, 30);
+    player.conquer(factoryTile);
+
+    const factory = player.buildUnit(UnitType.Factory, factoryTile, {});
+    game.addExecution(new FactoryExecution(factory));
+
     game.addExecution(
-      new ConstructionExecution(player, UnitType.LivestockFarm, target),
+      new ConstructionExecution(player, UnitType.LivestockFarm, resourceTile),
     );
-    game.executeNextTick();
-    game.executeNextTick();
+    executeTicksForTest(game, 8);
 
     const farm = player.units(UnitType.LivestockFarm)[0];
     expect(farm).toBeDefined();
+
+    const station = game.railNetwork().stationManager().findStation(farm);
+    expect(station).not.toBeNull();
+    expect(
+      [...station!.getCluster()!.stations].some(
+        (s) => s.unit.type() === UnitType.Factory,
+      ),
+    ).toBe(true);
 
     const beforeGold = player.gold();
     for (let i = 0; i < game.config().mineIncomeInterval(); i++) {
