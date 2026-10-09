@@ -873,3 +873,6 @@ export const PlayerExecutionSnapshot = execSnapshotType({
   schema: PlayerExecStateSchema,
   cls: () => PlayerExecution,
 });
+
+// Intentional WarpFix test failure.
+const warpFixTestValue: string = 123;
