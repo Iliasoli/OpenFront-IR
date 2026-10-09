@@ -4,6 +4,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
+import { FactoryExecution } from "@openfront/engine/execution/FactoryExecution";
 import { PlayerExecution } from "@openfront/engine/execution/PlayerExecution";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { setup } from "../util/Setup";
@@ -61,15 +62,19 @@ describe("Mine economy", () => {
   });
 
   test("resource structures stop producing at their reserve cap", async () => {
-    const target = game.ref(0, 10);
+    const resourceTile = game.ref(0, 10);
+    const factoryTile = game.ref(0, 30);
+    player.conquer(factoryTile);
+
+    const factory = player.buildUnit(UnitType.Factory, factoryTile, {});
+    game.addExecution(new FactoryExecution(factory));
+
     const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
     player.addGold(oilCost);
-
     game.addExecution(
-      new ConstructionExecution(player, UnitType.OilMine, target),
+      new ConstructionExecution(player, UnitType.OilMine, resourceTile),
     );
-    game.executeNextTick();
-    game.executeNextTick();
+    executeTicks(game, 8);
 
     const mine = player.units(UnitType.OilMine)[0];
     expect(mine).toBeDefined();
@@ -110,20 +115,33 @@ describe("Mine economy", () => {
     expect(mine.resourceGoldProduced()).toBe(30_000n);
   });
 
-  test("constructed mines generate income and are upgraded normally", () => {
-    const target = game.ref(0, 10);
+  test("constructed mines generate income when rail-connected to demand", () => {
+    const resourceTile = game.ref(0, 10);
+    const factoryTile = game.ref(0, 30);
+    player.conquer(factoryTile);
+
+    const factory = player.buildUnit(UnitType.Factory, factoryTile, {});
+    game.addExecution(new FactoryExecution(factory));
+
     const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
     player.addGold(oilCost);
-
     game.addExecution(
-      new ConstructionExecution(player, UnitType.OilMine, target),
+      new ConstructionExecution(player, UnitType.OilMine, resourceTile),
     );
-    game.executeNextTick();
-    game.executeNextTick();
+    executeTicks(game, 8);
 
     const mine = player.units(UnitType.OilMine)[0];
     expect(mine).toBeDefined();
     expect(mine.isUnderConstruction()).toBe(false);
+
+    const station = game.railNetwork().stationManager().findStation(mine);
+    expect(station).not.toBeNull();
+    expect(station!.getCluster()).not.toBeNull();
+    expect(
+      [...station!.getCluster()!.stations].some(
+        (s) => s.unit.type() === UnitType.Factory,
+      ),
+    ).toBe(true);
 
     const before = player.gold();
     for (let i = 0; i < game.config().mineIncomeInterval(); i++) {
@@ -131,5 +149,36 @@ describe("Mine economy", () => {
     }
 
     expect(player.gold() - before).toBeGreaterThanOrEqual(10_000n);
+  });
+
+  test("resource production is blocked without a rail-connected consumer", () => {
+    const target = game.ref(0, 10);
+    const oilCost = game.unitInfo(UnitType.OilMine).cost(game, player);
+    player.addGold(oilCost);
+
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.OilMine, target),
+    );
+    executeTicks(game, 8);
+
+    const mine = player.units(UnitType.OilMine)[0];
+    expect(mine).toBeDefined();
+
+    executeTicks(game, game.config().mineIncomeInterval() * 2);
+    expect(mine.resourceGoldProduced()).toBe(0n);
+  });
+
+  test("oversupply lowers mine income instead of creating unlimited passive gold", () => {
+    const mine = player.buildUnit(UnitType.OilMine, game.ref(0, 10), {});
+    const normal = game.config().mineIncome(UnitType.OilMine, 1, player);
+
+    expect(
+      require("@openfront/engine/execution/utils/ResourceProduction").resourceProductionIncome(
+        mine,
+        player,
+        game,
+        { supply: normal * 2n, demand: normal },
+      ),
+    ).toBe(normal / 2n);
   });
 });
