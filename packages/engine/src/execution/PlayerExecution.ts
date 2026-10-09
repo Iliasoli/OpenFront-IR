@@ -11,6 +11,10 @@ import { z } from "zod";
 import { EngineConfig } from "../configuration/EngineConfig";
 import { Execution, Game, Player } from "../game/Game";
 import {
+  resourceProductionIncome,
+  resourceProductionMarkets,
+} from "./utils/ResourceProduction";
+import {
   bumpTraversalGeneration,
   tileTraversalScratch,
   TileTraversalScratch,
@@ -98,6 +102,10 @@ export class PlayerExecution implements Execution {
     this.player.addGold(goldFromWorkers);
 
     const mineIncomeInterval = this.config.mineIncomeInterval();
+    const resourceMarkets = resourceProductionMarkets(this.player, this.mg);
+    const resourceStationManager =
+      this.mg.railNetwork().stationManager();
+
     for (const unit of this.player.units()) {
       if (
         unit.isUnderConstruction() ||
@@ -112,11 +120,8 @@ export class PlayerExecution implements Execution {
       if ((ticks + unit.id()) % mineIncomeInterval !== 0) {
         continue;
       }
-      const income = this.config.mineIncome(
-        unit.type(),
-        unit.level(),
-        this.player,
-      );
+
+      // Valve 1: bounded trade throughput.
       const cap = this.config.resourceProductionCap(
         unit.type(),
         unit.level(),
@@ -126,6 +131,21 @@ export class PlayerExecution implements Execution {
       if (remaining <= 0n) {
         continue;
       }
+
+      // Valve 2: the producer must be rail-connected to a local market made
+      // only of Cities, Missile Silos, Factories, and Ports.
+      const station = resourceStationManager.findStation(unit);
+      const market = station?.getCluster();
+      const income = resourceProductionIncome(
+        unit,
+        this.player,
+        this.mg,
+        market === undefined ? undefined : resourceMarkets.get(market),
+      );
+      if (income <= 0n) {
+        continue;
+      }
+
       const credited = income <= remaining ? income : remaining;
       this.player.addGold(credited, unit.tile());
       unit.addResourceGoldProduced(credited);
