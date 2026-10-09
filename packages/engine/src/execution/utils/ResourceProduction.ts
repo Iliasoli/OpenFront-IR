@@ -1,5 +1,4 @@
-import { UnitType } from "@openfront/engine-api/game/GameTypes";
-import { Gold } from "@openfront/engine-api/game/GameTypes";
+import { Gold, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { Game, Player, Unit } from "../../game/Game";
 import { Cluster } from "../../game/TrainStation";
 
