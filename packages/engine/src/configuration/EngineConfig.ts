@@ -687,6 +687,24 @@ export class EngineConfig extends Config {
    * entire reserve, so briefly enabling trade cannot create a long passive
    * payout window.
    */
+  /**
+   * Demand supplied by each connected City, Missile Silo, Factory, or Port
+   * per production interval and per structure level.
+   *
+   * A rail-connected cluster compares this demand against the combined
+   * output capacity of its Oil Mines, Gold Mines, Diamond Mines, and
+   * Livestock Farms. Oversupply lowers the realized income of every producer
+   * in that local market, while zero demand blocks production entirely.
+   */
+  resourceProductionConsumerDemand(level: number): Gold {
+    return 25_000n * BigInt(Math.max(1, level));
+  }
+
+  /** Minimum market price when supply greatly exceeds connected demand. */
+  resourceProductionPriceFloorBps(): number {
+    return 1_000; // 10% of normal income.
+  }
+
   resourceProductionCap(
     type: UnitType,
     level: number,
