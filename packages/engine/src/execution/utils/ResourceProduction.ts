@@ -1,6 +1,6 @@
 import { Gold, UnitType } from "@openfront/engine-api/game/GameTypes";
 import { Game, Player, Unit } from "../../game/Game";
-import { Cluster } from "../../game/TrainStation";
+import type { Cluster } from "../../game/TrainStation";
 
 export const RESOURCE_PRODUCTION_UNIT_TYPES = [
   UnitType.OilMine,
