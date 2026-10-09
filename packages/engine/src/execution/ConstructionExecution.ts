@@ -187,7 +187,7 @@ export class ConstructionExecution implements Execution {
             UnitType.Factory,
             UnitType.Port,
           ],
-        );
+        ).filter(({ unit }) => unit.owner() === this.structure!.owner());
         for (const { unit } of nearbyConsumers) {
           if (!unit.hasTrainStation()) {
             this.mg.addExecution(new TrainStationExecution(unit));
