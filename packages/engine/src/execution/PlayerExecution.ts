@@ -14,8 +14,8 @@ import type { Cluster } from "../game/TrainStation";
 import {
   resourceProductionIncome,
   resourceProductionMarkets,
+  type ResourceProductionMarket,
 } from "./utils/ResourceProduction";
-import type { ResourceProductionMarket } from "./utils/ResourceProduction";
 import {
   bumpTraversalGeneration,
   tileTraversalScratch,
