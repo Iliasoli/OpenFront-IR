@@ -143,7 +143,9 @@ export class PlayerExecution implements Execution {
         unit,
         this.player,
         this.mg,
-        market === undefined ? undefined : resourceMarkets.get(market),
+        market === null || market === undefined
+          ? undefined
+          : resourceMarkets.get(market),
       );
       if (income <= 0n) {
         continue;
