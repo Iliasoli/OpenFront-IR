@@ -10,10 +10,12 @@ import { getMode, simpleHash } from "@openfront/engine-lib/Util";
 import { z } from "zod";
 import { EngineConfig } from "../configuration/EngineConfig";
 import { Execution, Game, Player } from "../game/Game";
+import type { Cluster } from "../game/TrainStation";
 import {
   resourceProductionIncome,
   resourceProductionMarkets,
 } from "./utils/ResourceProduction";
+import type { ResourceProductionMarket } from "./utils/ResourceProduction";
 import {
   bumpTraversalGeneration,
   tileTraversalScratch,
@@ -102,12 +104,7 @@ export class PlayerExecution implements Execution {
     this.player.addGold(goldFromWorkers);
 
     const mineIncomeInterval = this.config.mineIncomeInterval();
-    let resourceMarkets:
-      | Map<
-          import("../game/TrainStation").Cluster,
-          import("./utils/ResourceProduction").ResourceProductionMarket
-        >
-      | undefined;
+    let resourceMarkets: Map<Cluster, ResourceProductionMarket> | undefined;
     const resourceStationManager =
       this.mg.railNetwork().stationManager();
 
