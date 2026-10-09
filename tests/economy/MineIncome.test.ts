@@ -182,4 +182,35 @@ describe("Mine economy", () => {
       ),
     ).toBe(normal / 2n);
   });
+
+  test("a missile silo can receive rail-connected resource supply", () => {
+    const resourceTile = game.ref(0, 10);
+    const siloTile = game.ref(0, 30);
+    player.conquer(siloTile);
+
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.MissileSilo, siloTile),
+    );
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.OilMine, resourceTile),
+    );
+    executeTicks(game, 8);
+
+    const mine = player.units(UnitType.OilMine)[0];
+    const silo = player.units(UnitType.MissileSilo)[0];
+    expect(mine).toBeDefined();
+    expect(silo).toBeDefined();
+
+    const mineStation = game.railNetwork().stationManager().findStation(mine);
+    expect(mineStation).not.toBeNull();
+    expect(
+      [...mineStation!.getCluster()!.stations].some(
+        (station) => station.unit === silo,
+      ),
+    ).toBe(true);
+
+    const before = player.gold();
+    executeTicks(game, game.config().mineIncomeInterval());
+    expect(player.gold() - before).toBeGreaterThanOrEqual(10_000n);
+  });
 });
