@@ -262,6 +262,12 @@ export class Config {
           upgradable: true,
         };
         break;
+      case UnitType.InternationalBank:
+        info = {
+          constructionDuration: this.instantBuild() ? 0 : 10 * 10,
+          upgradable: false,
+        };
+        break;
       case UnitType.TransportShip:
       case UnitType.SAMMissile:
       case UnitType.AtomBomb:

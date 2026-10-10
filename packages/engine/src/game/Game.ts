@@ -117,6 +117,7 @@ export interface UnitParamsMap {
   [UnitType.SAMLauncher]: Record<string, never>;
 
   [UnitType.City]: Record<string, never>;
+  [UnitType.InternationalBank]: Record<string, never>;
 }
 
 // Type helper to get params type for a specific unit type
@@ -377,6 +378,7 @@ export interface Player extends PlayerLike {
   gold(): Gold;
   addGold(toAdd: Gold, tile?: TileRef): void;
   removeGold(toRemove: Gold): Gold;
+  deductGoldAllowNegative(amount: Gold): void;
 
   // Cumulative trade revenue, surfaced on the live PlayerUpdate so clients can
   // compute per-source gold rates (leaderboard "Ship/Train Trade Gold/min").
@@ -472,11 +474,13 @@ export interface Player extends PlayerLike {
   canSendQuickChat(recipient: Player): boolean;
   recordQuickChat(recipient: Player): void;
 
-  // Donation
+  // Donation & Loans
   canDonateGold(recipient: Player): boolean;
   canDonateTroops(recipient: Player): boolean;
   donateTroops(recipient: Player, troops: number): boolean;
   donateGold(recipient: Player, gold: Gold): boolean;
+  canRequestLoan(other: Player): boolean;
+  canGrantLoan(other: Player): boolean;
   canDeleteUnit(): boolean;
   recordDeleteUnit(): void;
   canEmbargoAll(): boolean;
@@ -559,6 +563,16 @@ export interface Game extends GameLike {
 
   // Alliances
   expireAlliance(alliance: Alliance): void;
+
+  // International Bank & Loans
+  internationalBankOwner(): Player | null;
+  setInternationalBankOwner(player: Player): void;
+  hasActiveInternationalBank(player: Player): boolean;
+  isBiggestPlayer(player: Player): boolean;
+  createLoanRequest(requestor: Player, recipient: Player): boolean;
+  hasPendingLoanRequest(requestor: Player, recipient: Player): boolean;
+  rejectLoanRequest(requestor: Player, recipient: Player): void;
+  consumeLoanRequest(requestor: Player, recipient: Player): boolean;
 
   // Immunity timer
   isSpawnImmunityActive(): boolean;

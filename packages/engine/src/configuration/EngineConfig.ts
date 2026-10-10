@@ -388,6 +388,11 @@ export class EngineConfig extends Config {
           (numUnits: number) => Math.min(1_000_000, pow2(numUnits) * 100_000),
           UnitType.LivestockFarm,
         );
+      case UnitType.InternationalBank:
+        return this.costWrapper(
+          () => 250_000_000,
+          UnitType.InternationalBank,
+        );
       case UnitType.TransportShip:
       case UnitType.Shell:
       case UnitType.SAMMissile:
@@ -419,13 +424,14 @@ export class EngineConfig extends Config {
   }
 
   public conquerGoldAmount(captured: PlayerLike): Gold {
+    const gold = captured.gold() > 0n ? captured.gold() : 0n;
     if (
       captured.type() === PlayerType.Bot ||
       captured.type() === PlayerType.Nation
     ) {
-      return captured.gold();
+      return gold;
     } else {
-      return captured.gold() / 2n;
+      return gold / 2n;
     }
   }
 

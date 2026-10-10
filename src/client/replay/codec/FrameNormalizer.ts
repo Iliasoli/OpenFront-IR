@@ -81,6 +81,9 @@ export const UPDATE_TYPE_ROUTING: Record<
   SpawnPhaseEnd: "events",
   GamePaused: "misc",
   DonateEvent: "misc",
+  LoanRequest: "misc",
+  LoanRequestReply: "misc",
+  LoanEvent: "misc",
 };
 
 /**

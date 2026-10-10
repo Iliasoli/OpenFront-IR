@@ -115,6 +115,9 @@ export enum GameUpdateType {
   SpawnPhaseEnd,
   GamePaused,
   DonateEvent,
+  LoanRequest,
+  LoanRequestReply,
+  LoanEvent,
 }
 
 export type GameUpdate =
@@ -140,7 +143,10 @@ export type GameUpdate =
   | EmbargoUpdate
   | SpawnPhaseEndUpdate
   | GamePausedUpdate
-  | DonateEventUpdate;
+  | DonateEventUpdate
+  | LoanRequestUpdate
+  | LoanRequestReplyUpdate
+  | LoanEventUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -390,3 +396,27 @@ export interface GamePausedUpdate {
   type: GameUpdateType.GamePaused;
   paused: boolean;
 }
+
+export interface LoanRequestUpdate {
+  type: GameUpdateType.LoanRequest;
+  requestorID: number;
+  recipientID: number;
+  createdAt: Tick;
+}
+
+export interface LoanRequestReplyUpdate {
+  type: GameUpdateType.LoanRequestReply;
+  requestorID: number;
+  recipientID: number;
+  accepted: boolean;
+}
+
+export interface LoanEventUpdate {
+  type: GameUpdateType.LoanEvent;
+  event: "granted" | "repaid";
+  lenderID: number;
+  borrowerID: number;
+  amount: Gold;
+  durationSeconds?: number;
+}
+

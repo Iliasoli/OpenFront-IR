@@ -166,6 +166,12 @@ export class GameImpl implements Game {
   private _teamGameSpawnAreas: TeamGameSpawnAreas | undefined;
   /** Tiles from nuke blast radii this tick, drained by the renderer. */
   private _nukeImpactQueue: TileRef[] = [];
+  private _internationalBankOwnerID: PlayerID | null = null;
+  private _loanRequests: {
+    requestorID: PlayerID;
+    recipientID: PlayerID;
+    createdAt: Tick;
+  }[] = [];
 
   constructor(
     private _humans: PlayerInfo[],
@@ -501,6 +507,111 @@ export class GameImpl implements Game {
       request: request.toUpdate(),
       accepted: false,
     });
+  }
+
+  internationalBankOwner(): Player | null {
+    if (this._internationalBankOwnerID === null) return null;
+    return this._players.get(this._internationalBankOwnerID) ?? null;
+  }
+
+  setInternationalBankOwner(player: Player): void {
+    if (this._internationalBankOwnerID === null) {
+      this._internationalBankOwnerID = player.id();
+    }
+  }
+
+  hasActiveInternationalBank(player: Player): boolean {
+    if (!player.isAlive()) return false;
+    if (this._internationalBankOwnerID !== player.id()) return false;
+    return player
+      .units(UnitType.InternationalBank)
+      .some((u) => u.isActive() && !u.isUnderConstruction());
+  }
+
+  isBiggestPlayer(player: Player): boolean {
+    if (!player.isAlive() || player.numTilesOwned() <= 0) return false;
+    const myTiles = player.numTilesOwned();
+    for (const p of this._players.values()) {
+      if (p.isAlive() && p.numTilesOwned() > myTiles) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private pruneExpiredLoanRequests(): void {
+    const duration = 60 * 10; // 60 seconds
+    this._loanRequests = this._loanRequests.filter((r) => {
+      const req = this._players.get(r.requestorID);
+      const rec = this._players.get(r.recipientID);
+      return (
+        req !== undefined &&
+        rec !== undefined &&
+        req.isAlive() &&
+        rec.isAlive() &&
+        this._ticks - r.createdAt < duration
+      );
+    });
+  }
+
+  hasPendingLoanRequest(requestor: Player, recipient: Player): boolean {
+    this.pruneExpiredLoanRequests();
+    return this._loanRequests.some(
+      (r) =>
+        r.requestorID === requestor.id() && r.recipientID === recipient.id(),
+    );
+  }
+
+  createLoanRequest(requestor: Player, recipient: Player): boolean {
+    this.pruneExpiredLoanRequests();
+    if (this.hasPendingLoanRequest(requestor, recipient)) {
+      return false;
+    }
+    this._loanRequests.push({
+      requestorID: requestor.id(),
+      recipientID: recipient.id(),
+      createdAt: this._ticks,
+    });
+    this.addUpdate({
+      type: GameUpdateType.LoanRequest,
+      requestorID: requestor.smallID(),
+      recipientID: recipient.smallID(),
+      createdAt: this._ticks,
+    });
+    return true;
+  }
+
+  rejectLoanRequest(requestor: Player, recipient: Player): void {
+    this.pruneExpiredLoanRequests();
+    const idx = this._loanRequests.findIndex(
+      (r) =>
+        r.requestorID === requestor.id() && r.recipientID === recipient.id(),
+    );
+    if (idx === -1) return;
+    this._loanRequests.splice(idx, 1);
+    this.addUpdate({
+      type: GameUpdateType.LoanRequestReply,
+      requestorID: requestor.smallID(),
+      recipientID: recipient.smallID(),
+      accepted: false,
+    });
+  }
+
+  consumeLoanRequest(requestor: Player, recipient: Player): boolean {
+    this.pruneExpiredLoanRequests();
+    const idx = this._loanRequests.findIndex(
+      (r) =>
+        r.requestorID === requestor.id() && r.recipientID === recipient.id(),
+    );
+    if (idx === -1) return false;
+    this._loanRequests.splice(idx, 1);
+    this.addUpdate({
+      type: GameUpdateType.LoanRequestReply,
+      requestorID: requestor.smallID(),
+      recipientID: recipient.smallID(),
+      accepted: true,
+    });
+    return true;
   }
 
   hasPlayer(id: PlayerID): boolean {
@@ -1490,6 +1601,8 @@ export class GameImpl implements Game {
         this._sharedWaterCache.snapshot(w),
       ),
       stats: w.versioned(StatsSnapshot, (this._stats as StatsImpl).snapshot()),
+      internationalBankOwnerID: this._internationalBankOwnerID,
+      loanRequests: this._loanRequests.map((r) => ({ ...r })),
     };
   }
 
@@ -1550,6 +1663,8 @@ export class GameImpl implements Game {
     (this._stats as StatsImpl).restoreSnapshot(
       readVersioned(StatsSnapshot, s.stats),
     );
+    this._internationalBankOwnerID = s.internationalBankOwnerID ?? null;
+    this._loanRequests = (s.loanRequests ?? []).map((req) => ({ ...req }));
   }
 
   conquerPlayer(conqueror: Player, conquered: Player) {
@@ -1574,7 +1689,8 @@ export class GameImpl implements Game {
     const attacksSent = stats?.attacks?.[ATTACK_INDEX_SENT] ?? 0n;
     const skipGoldTransfer =
       attacksSent === 0n && conquered.type() === PlayerType.Human;
-    const gold = skipGoldTransfer ? 0n : conquered.gold();
+    const rawGold = conquered.gold() > 0n ? conquered.gold() : 0n;
+    const gold = skipGoldTransfer ? 0n : rawGold;
     const goldCaptured = skipGoldTransfer
       ? 0n
       : this._config.conquerGoldAmount(conquered);
@@ -1673,6 +1789,16 @@ export const GameSnapshot = snapshotType({
     water: VersionedSchema,
     sharedWaterCache: VersionedSchema,
     stats: VersionedSchema,
+    internationalBankOwnerID: z.string().nullable().optional(),
+    loanRequests: z
+      .array(
+        z.object({
+          requestorID: z.string(),
+          recipientID: z.string(),
+          createdAt: zInt(),
+        }),
+      )
+      .optional(),
   }),
 });
 export type GameState = z.infer<typeof GameSnapshot.schema>;

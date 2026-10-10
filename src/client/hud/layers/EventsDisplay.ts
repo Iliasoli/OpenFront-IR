@@ -56,6 +56,10 @@ const TIER_1_TYPES: ReadonlySet<MessageType> = new Set([
   MessageType.CONQUERED_PLAYER,
   MessageType.CHAT,
   MessageType.DONATION_RECEIVED,
+  MessageType.LOAN_REQUEST,
+  MessageType.LOAN_ACCEPTED,
+  MessageType.LOAN_REJECTED,
+  MessageType.LOAN_REPAID,
 ]);
 
 const isTier1 = (type: MessageType): boolean => TIER_1_TYPES.has(type);

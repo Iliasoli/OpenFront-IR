@@ -1,5 +1,5 @@
 export function renderTroops(troops: number): string {
-  return renderNumber(troops / 10);
+  return renderNumber(Math.max(0, troops) / 10);
 }
 
 export function renderNumber(
@@ -7,7 +7,9 @@ export function renderNumber(
   fixedPoints?: number,
 ): string {
   num = Number(num);
-  num = Math.max(num, 0);
+  if (num < 0) {
+    return "-" + renderNumber(-num, fixedPoints);
+  }
 
   if (num >= 10_000_000_000) {
     const value = Math.floor(num / 100000000) / 10;

@@ -35,6 +35,7 @@ export const UT_OIL_MINE = "Oil Mine" as const;
 export const UT_GOLD_MINE = "Gold Mine" as const;
 export const UT_DIAMOND_MINE = "Diamond Mine" as const;
 export const UT_LIVESTOCK_FARM = "Livestock Farm" as const;
+export const UT_INTERNATIONAL_BANK = "International Bank" as const;
 
 // ---------------------------------------------------------------------------
 // Derived sets
@@ -52,6 +53,7 @@ export const STRUCTURE_TYPES: ReadonlySet<string> = new Set([
   UT_GOLD_MINE,
   UT_DIAMOND_MINE,
   UT_LIVESTOCK_FARM,
+  UT_INTERNATIONAL_BANK,
 ]);
 
 export const NUKE_TYPES: ReadonlySet<string> = new Set([
@@ -116,4 +118,5 @@ export const ALL_UNIT_TYPES = [
   UT_TRAIN,
   UT_TANK,
   UT_TANK_FACTORY,
+  UT_INTERNATIONAL_BANK,
 ] as const;

@@ -49,6 +49,9 @@ export type Intent =
   | ToggleGameStartTimer
   | MoveTankIntent
   | RefuelTankIntent;
+  | LoanRequestIntent
+  | LoanRejectIntent
+  | LoanApproveIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -87,6 +90,9 @@ export type UpdateGameConfigIntent = z.infer<
 export type ToggleGameStartTimer = z.infer<
   typeof ToggleGameStartTimerIntentSchema
 >;
+export type LoanRequestIntent = z.infer<typeof LoanRequestIntentSchema>;
+export type LoanRejectIntent = z.infer<typeof LoanRejectIntentSchema>;
+export type LoanApproveIntent = z.infer<typeof LoanApproveIntentSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -567,6 +573,23 @@ export const ToggleGameStartTimerIntentSchema = z.object({
   type: z.literal("toggle_game_start_timer"),
 });
 
+export const LoanRequestIntentSchema = z.object({
+  type: z.literal("loan_request"),
+  recipient: MappedID,
+});
+
+export const LoanRejectIntentSchema = z.object({
+  type: z.literal("loan_reject"),
+  requestor: MappedID,
+});
+
+export const LoanApproveIntentSchema = z.object({
+  type: z.literal("loan_approve"),
+  borrower: MappedID,
+  gold: zb.float({ min: 1 }),
+  durationSeconds: zb.uint({ min: 5, max: 3600 }),
+});
+
 export const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -595,6 +618,9 @@ export const IntentSchema = z.discriminatedUnion("type", [
   ToggleGameStartTimerIntentSchema,
   MoveTankIntentSchema,
   RefuelTankIntentSchema,
+  LoanRequestIntentSchema,
+  LoanRejectIntentSchema,
+  LoanApproveIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

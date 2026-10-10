@@ -20,6 +20,9 @@ import { DonateTroopsExecution } from "./DonateTroopExecution";
 import { EmbargoAllExecution } from "./EmbargoAllExecution";
 import { EmbargoExecution } from "./EmbargoExecution";
 import { EmojiExecution } from "./EmojiExecution";
+import { LoanApproveExecution } from "./LoanApproveExecution";
+import { LoanRejectExecution } from "./LoanRejectExecution";
+import { LoanRequestExecution } from "./LoanRequestExecution";
 import { MarkDisconnectedExecution } from "./MarkDisconnectedExecution";
 import { MoveTankExecution } from "./MoveTankExecution";
 import { MoveWarshipExecution } from "./MoveWarshipExecution";
@@ -119,6 +122,17 @@ export class Executor {
         );
       case "donate_gold":
         return new DonateGoldExecution(player, intent.recipient, intent.gold);
+      case "loan_request":
+        return new LoanRequestExecution(player, intent.recipient);
+      case "loan_reject":
+        return new LoanRejectExecution(intent.requestor, player);
+      case "loan_approve":
+        return new LoanApproveExecution(
+          player,
+          intent.borrower,
+          intent.gold,
+          intent.durationSeconds,
+        );
       case "embargo":
         return new EmbargoExecution(player, intent.targetID, intent.action);
       case "embargo_all":

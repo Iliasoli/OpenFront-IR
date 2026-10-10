@@ -76,6 +76,15 @@ export class PlayerExecution implements Execution {
       const captor = this.mg!.player(owner.id());
       if (u.type() === UnitType.DefensePost) {
         u.delete(true, captor);
+      } else if (u.type() === UnitType.InternationalBank) {
+        if (this.player.isAlive() && this.player.numTilesOwned() > 0) {
+          for (const t of this.player.tiles()) {
+            u.move(t);
+            break;
+          }
+        } else {
+          u.delete(true, captor);
+        }
       } else {
         captor.captureUnit(u);
       }

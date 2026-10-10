@@ -1190,6 +1190,23 @@ export class PlayerImpl implements Player {
     return true;
   }
 
+  canRequestLoan(other: Player): boolean {
+    if (other === this) return false;
+    if (!this.isAlive() || !other.isAlive()) return false;
+    if (!this.mg.hasActiveInternationalBank(other)) return false;
+    if (this.mg.hasPendingLoanRequest(this, other)) return false;
+    return true;
+  }
+
+  canGrantLoan(other: Player): boolean {
+    if (other === this) return false;
+    if (!this.isAlive() || !other.isAlive()) return false;
+    if (!this.mg.hasActiveInternationalBank(this)) return false;
+    if (this._gold <= 0n) return false;
+    if (!this.mg.hasPendingLoanRequest(other, this)) return false;
+    return true;
+  }
+
   canDeleteUnit(): boolean {
     return (
       this.mg.ticks() - this.lastDeleteUnitTick >=
@@ -1356,12 +1373,19 @@ export class PlayerImpl implements Player {
   }
 
   removeGold(toRemove: Gold): Gold {
-    if (toRemove <= 0n) {
+    if (toRemove <= 0n || this._gold <= 0n) {
       return 0n;
     }
     const actualRemoved = minInt(this._gold, toRemove);
     this._gold -= actualRemoved;
     return actualRemoved;
+  }
+
+  deductGoldAllowNegative(amount: Gold): void {
+    if (amount <= 0n) {
+      return;
+    }
+    this._gold -= amount;
   }
 
   troops(): number {
@@ -1414,6 +1438,9 @@ export class PlayerImpl implements Player {
     this._units.push(b);
     this._myUnitsVersion++;
     this.recordUnitConstructed(type);
+    if (type === UnitType.InternationalBank) {
+      this.mg.setInternationalBankOwner(this);
+    }
     this.removeGold(cost);
     this.removeTroops("troops" in params ? (params.troops ?? 0) : 0);
     this.mg.addUpdate(b.toUpdate());
@@ -1461,6 +1488,23 @@ export class PlayerImpl implements Player {
     }
     if (unitType !== UnitType.MIRVWarhead && !this.isAlive()) {
       return false;
+    }
+    if (unitType === UnitType.InternationalBank) {
+      if (this.mg.elapsedGameSeconds() < 600) {
+        return false;
+      }
+      if (this.mg.internationalBankOwner() !== null) {
+        return false;
+      }
+      if (this.mg.units(UnitType.InternationalBank).length > 0) {
+        return false;
+      }
+      if (!this.mg.isBiggestPlayer(this)) {
+        return false;
+      }
+      if (cost > 0n && this._gold < 500_000_000n) {
+        return false;
+      }
     }
     return true;
   }
@@ -1624,6 +1668,7 @@ export class PlayerImpl implements Player {
       case UnitType.GoldMine:
       case UnitType.DiamondMine:
       case UnitType.LivestockFarm:
+      case UnitType.InternationalBank:
         return this.landBasedStructureSpawn(targetTile, validTiles);
       default:
         assertNever(unitType);

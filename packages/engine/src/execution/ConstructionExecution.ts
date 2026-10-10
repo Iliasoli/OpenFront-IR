@@ -17,6 +17,7 @@ import type {
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { FactoryExecution } from "./FactoryExecution";
+import { InternationalBankExecution } from "./InternationalBankExecution";
 import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
 import { NukeExecution } from "./NukeExecution";
@@ -176,6 +177,9 @@ export class ConstructionExecution implements Execution {
       case UnitType.Tank:
         this.mg.addExecution(new TankExecution(this.structure!));
         break;
+      case UnitType.InternationalBank:
+        this.mg.addExecution(new InternationalBankExecution(this.structure!));
+        break;
       case UnitType.OilMine:
       case UnitType.GoldMine:
       case UnitType.DiamondMine:
@@ -226,6 +230,7 @@ export class ConstructionExecution implements Execution {
       case UnitType.GoldMine:
       case UnitType.DiamondMine:
       case UnitType.LivestockFarm:
+      case UnitType.InternationalBank:
         return true;
       default:
         return false;

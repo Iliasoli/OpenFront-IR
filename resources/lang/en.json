@@ -180,6 +180,7 @@
       "gold_mine": "Extracts gold and generates more gold",
       "diamond_mine": "Extracts diamonds and generates the most gold",
       "livestock_farm": "Breeds livestock, boosts troop growth and generates gold",
+      "international_bank": "Unlocks after 10m for the largest player with 500M+ gold (costs 250M). Only one player can ever build it to grant timed loans.",
       "hydrogen_bomb": "Large explosion",
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
@@ -852,7 +853,25 @@
     "trade_ship_captured": "Your trade ship was captured by {name}",
     "unit_destroyed": "Your {unit} was destroyed",
     "unit_voluntarily_deleted": "Unit voluntarily deleted",
-    "wants_to_renew_alliance": "{name} wants to renew your alliance"
+    "wants_to_renew_alliance": "{name} wants to renew your alliance",
+    "accept_loan": "Grant Loan",
+    "reject_loan": "Reject",
+    "request_loan": "{name} is requesting a loan from your International Bank!",
+    "loan_request_sent": "Loan request sent to {name}.",
+    "loan_rejected": "{name} rejected your loan request.",
+    "loan_received": "Received {gold} gold loan from {name} (auto-repaid in {seconds}s)",
+    "loan_granted": "Granted {gold} gold loan to {name} (repaid in {seconds}s)",
+    "loan_repaid_borrower": "Loan of {gold} gold automatically repaid to {name}",
+    "loan_repaid_lender": "{name} automatically repaid {gold} gold loan"
+  },
+  "grant_loan_modal": {
+    "title": "Grant Loan to {name}",
+    "amount_label": "Loan Amount",
+    "duration_label": "Repayment Time",
+    "repayment_note": "When the timer expires, the loan amount is automatically deducted from the borrower (even if their balance goes negative).",
+    "confirm": "Approve & Send Loan",
+    "insufficient_gold": "Not enough gold to grant this loan",
+    "loan_sent": "Granted {amount} gold loan to {name} ({seconds}s)"
   },
   "featured_stream": {
     "expand": "Expand",
@@ -1729,7 +1748,10 @@
     "target": "Target",
     "trading": "Trading",
     "traitor": "Traitor",
-    "troops": "Troops"
+    "troops": "Troops",
+    "request_loan": "Request Loan",
+    "grant_loan": "Grant Loan",
+    "loan_request_sent": "Loan request sent to {name}"
   },
   "player_profile": {
     "loading": "Loading profile...",
@@ -2352,7 +2374,8 @@
     "missile_silo": "Missile Silo",
     "port": "Port",
     "sam_launcher": "SAM Launcher",
-    "warship": "Warship"
+    "warship": "Warship",
+    "international_bank": "International Bank"
   },
   "update_available": {
     "desktop": "A new version of OpenFront is available. It will download in the background; reload from the update bar once it is ready.",

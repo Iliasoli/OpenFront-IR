@@ -5,6 +5,8 @@ import {
   AllianceRequestUpdate,
   BrokeAllianceUpdate,
   GameUpdateType,
+  LoanRequestReplyUpdate,
+  LoanRequestUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
@@ -16,10 +18,12 @@ import {
   SendAllianceExtensionIntentEvent,
   SendAllianceRejectIntentEvent,
   SendAllianceRequestIntentEvent,
+  SendLoanRejectIntentEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { getMessageTypeClasses, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
+import { OpenGrantLoanModalEvent } from "./GrantLoanModal";
 
 interface ActionableEvent {
   description: string;
@@ -61,6 +65,8 @@ export class ActionableEvents extends LitElement implements Controller {
       GameUpdateType.AllianceExtension,
       this.onAllianceExtensionEvent.bind(this),
     ],
+    [GameUpdateType.LoanRequest, this.onLoanRequestEvent.bind(this)],
+    [GameUpdateType.LoanRequestReply, this.onLoanRequestReplyEvent.bind(this)],
   ] as const;
 
   createRenderRoot() {
@@ -119,6 +125,10 @@ export class ActionableEvents extends LitElement implements Controller {
       (event) =>
         (event.duration === undefined ||
           this.game.ticks() - event.createdAt < event.duration) &&
+        (event.type !== MessageType.LOAN_REQUEST ||
+          (
+            this.game.playerBySmallID(event.requestorID) as PlayerView
+          ).isAlive()) &&
         (event.type !== MessageType.ALLIANCE_REQUEST ||
           // We remove Alliance Requests if the requestor is dead.
           ((
@@ -273,6 +283,73 @@ export class ActionableEvents extends LitElement implements Controller {
       (event) =>
         !(
           event.type === MessageType.ALLIANCE_REQUEST &&
+          event.focusID === requestorID
+        ),
+    );
+    if (remaining.length !== this.events.length) {
+      this.events = remaining;
+      this.requestUpdate();
+    }
+  }
+
+  onLoanRequestEvent(update: LoanRequestUpdate) {
+    const myPlayer = this.game.myPlayer();
+    if (!myPlayer || update.recipientID !== myPlayer.smallID()) {
+      return;
+    }
+
+    const requestor = this.game.playerBySmallID(
+      update.requestorID,
+    ) as PlayerView;
+
+    this.eventBus.emit(new PlaySoundEffectEvent("alliance-suggested"));
+    this.addEvent({
+      description: translateText("events_display.request_loan", {
+        name: requestor.displayName(),
+      }),
+      buttons: [
+        {
+          text: translateText("events_display.focus"),
+          className: "btn-gray",
+          action: () => this.eventBus.emit(new GoToPlayerEvent(requestor)),
+          preventClose: true,
+        },
+        {
+          text: translateText("events_display.accept_loan"),
+          className: "btn",
+          action: () => {
+            this.eventBus.emit(new OpenGrantLoanModalEvent(requestor));
+          },
+          preventClose: true,
+        },
+        {
+          text: translateText("events_display.reject_loan"),
+          className: "btn-info",
+          action: () => {
+            this.eventBus.emit(new PlaySoundEffectEvent("alliance-declined"));
+            this.eventBus.emit(new SendLoanRejectIntentEvent(requestor));
+          },
+        },
+      ],
+      type: MessageType.LOAN_REQUEST,
+      createdAt: this.game.ticks(),
+      priority: 0,
+      duration: 60 * 10,
+      focusID: update.requestorID,
+      requestorID: update.requestorID,
+    });
+  }
+
+  private onLoanRequestReplyEvent(update: LoanRequestReplyUpdate) {
+    const myPlayer = this.game.myPlayer();
+    if (!myPlayer || update.recipientID !== myPlayer.smallID()) {
+      return;
+    }
+    const requestorID = update.requestorID;
+    const remaining = this.events.filter(
+      (event) =>
+        !(
+          event.type === MessageType.LOAN_REQUEST &&
           event.focusID === requestorID
         ),
     );

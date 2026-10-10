@@ -219,6 +219,7 @@ export enum UnitType {
   LivestockFarm = "Livestock Farm",
   TankFactory = "Tank Factory",
   Tank = "Tank",
+  InternationalBank = "International Bank",
 }
 
 export enum TrainType {
@@ -253,6 +254,7 @@ export const Structures = unitTypeGroup([
   UnitType.GoldMine,
   UnitType.DiamondMine,
   UnitType.LivestockFarm,
+  UnitType.InternationalBank,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -436,6 +438,9 @@ export interface PlayerInteraction {
   canDonateTroops: boolean;
   canEmbargo: boolean;
   allianceInfo?: AllianceInfo;
+  canRequestLoan?: boolean;
+  canGrantLoan?: boolean;
+  hasInternationalBank?: boolean;
 }
 
 export interface EmojiMessage {
@@ -468,6 +473,10 @@ export enum MessageType {
   DONATION_RECEIVED,
   CHAT,
   RENEW_ALLIANCE,
+  LOAN_REQUEST,
+  LOAN_ACCEPTED,
+  LOAN_REJECTED,
+  LOAN_REPAID,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -503,6 +512,10 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.DONATION_SENT]: MessageCategory.TRADE,
   [MessageType.DONATION_RECEIVED]: MessageCategory.TRADE,
   [MessageType.CHAT]: MessageCategory.CHAT,
+  [MessageType.LOAN_REQUEST]: MessageCategory.TRADE,
+  [MessageType.LOAN_ACCEPTED]: MessageCategory.TRADE,
+  [MessageType.LOAN_REJECTED]: MessageCategory.TRADE,
+  [MessageType.LOAN_REPAID]: MessageCategory.TRADE,
 } as const;
 
 /**
