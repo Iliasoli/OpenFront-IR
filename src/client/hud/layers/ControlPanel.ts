@@ -194,6 +194,25 @@ export class ControlPanel extends LitElement implements Controller {
           }
         }
       }
+      const loanEvents = updates[GameUpdateType.LoanEvent];
+      if (loanEvents) {
+        const mySmallID = player.smallID();
+        for (const ev of loanEvents) {
+          if (
+            ev.event === "granted" &&
+            ev.borrowerID === mySmallID &&
+            ev.amount > 0n
+          ) {
+            this.addGoldGain(ev.amount);
+          } else if (
+            ev.event === "repaid" &&
+            ev.lenderID === mySmallID &&
+            ev.amount > 0n
+          ) {
+            this.addGoldGain(ev.amount);
+          }
+        }
+      }
     }
 
     this.requestUpdate();
@@ -596,7 +615,9 @@ export class ControlPanel extends LitElement implements Controller {
         </div>
         <!-- Gold -->
         <div
-          class="flex items-center gap-1 shrink-0 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm py-0.5 px-1 min-w-[4.5rem] relative ${this.tutorialHighlightClass(
+          class="flex items-center gap-1 shrink-0 border rounded-md ${this._gold < 0n
+            ? "border-red-400 text-red-400"
+            : "border-yellow-400 text-yellow-400"} font-bold text-sm py-0.5 px-1 min-w-[4.5rem] relative ${this.tutorialHighlightClass(
             "gold",
           )}"
           translate="no"
@@ -658,7 +679,9 @@ export class ControlPanel extends LitElement implements Controller {
       <div class="flex gap-2 items-center">
         <!-- Gold -->
         <div
-          class="flex items-center justify-center p-1 gap-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-xs w-1/5 shrink-0 relative ${this.tutorialHighlightClass(
+          class="flex items-center justify-center p-1 gap-0.5 border rounded-md ${this._gold < 0n
+            ? "border-red-400 text-red-400"
+            : "border-yellow-400 text-yellow-400"} font-bold text-xs w-1/5 shrink-0 relative ${this.tutorialHighlightClass(
             "gold",
           )}"
           translate="no"

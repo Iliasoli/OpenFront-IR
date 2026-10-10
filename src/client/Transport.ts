@@ -225,6 +225,22 @@ export class MoveTankIntentEvent implements GameEvent {
   ) {}
 }
 
+export class SendLoanRequestIntentEvent implements GameEvent {
+  constructor(public readonly recipient: PlayerView) {}
+}
+
+export class SendLoanRejectIntentEvent implements GameEvent {
+  constructor(public readonly requestor: PlayerView) {}
+}
+
+export class SendLoanApproveIntentEvent implements GameEvent {
+  constructor(
+    public readonly borrower: PlayerView,
+    public readonly gold: number,
+    public readonly durationSeconds: number,
+  ) {}
+}
+
 // One-shot marker that this lobby has already sent us to a sibling, so a
 // redirect can never become a bounce.
 const poolRedirectLatch = (gameID: string) => `pool-redirect:${gameID}`;
@@ -318,6 +334,26 @@ export class Transport {
     this.subscribe(SendDonateTroopsIntentEvent, (e) =>
       this.onSendDonateTroopIntent(e),
     );
+    this.subscribe(SendLoanRequestIntentEvent, (e) => {
+      this.sendIntent({
+        type: "loan_request",
+        recipient: e.recipient.id(),
+      });
+    });
+    this.subscribe(SendLoanRejectIntentEvent, (e) => {
+      this.sendIntent({
+        type: "loan_reject",
+        requestor: e.requestor.id(),
+      });
+    });
+    this.subscribe(SendLoanApproveIntentEvent, (e) => {
+      this.sendIntent({
+        type: "loan_approve",
+        borrower: e.borrower.id(),
+        gold: e.gold,
+        durationSeconds: e.durationSeconds,
+      });
+    });
     this.subscribe(SendQuickChatEvent, (e) => this.onSendQuickChatIntent(e));
     this.subscribe(SendEmbargoIntentEvent, (e) => this.onSendEmbargoIntent(e));
     this.subscribe(SendEmbargoAllIntentEvent, (e) =>

@@ -38,6 +38,7 @@ import {
   SendEmbargoAllIntentEvent,
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
+  SendLoanRequestIntentEvent,
   SendTargetPlayerIntentEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
@@ -46,6 +47,8 @@ import { renderDuration, showToast, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
 import { ChatModal } from "./ChatModal";
 import { EmojiTable } from "./EmojiTable";
+import "./GrantLoanModal";
+import { OpenGrantLoanModalEvent } from "./GrantLoanModal";
 import "./PlayerModerationModal";
 import "./PlayerReportModal";
 import "./SendResourceModal";
@@ -89,6 +92,7 @@ export class PlayerPanel extends LitElement implements Controller {
 
   @state() private sendTarget: PlayerView | null = null;
   @state() private sendMode: "troops" | "gold" | "none" = "none";
+  @state() private loanTarget: PlayerView | null = null;
   @state() public isVisible: boolean = false;
   @state() private allianceExpiryText: string | null = null;
   @state() private allianceExpirySeconds: number | null = null;
@@ -136,6 +140,50 @@ export class PlayerPanel extends LitElement implements Controller {
       this.reportedClientIDs.add(event.reported);
       this.requestUpdate();
       showToast(translateText("player_panel.report_sent"), "green");
+    });
+    eventBus.on(OpenGrantLoanModalEvent, async (event) => {
+      const myPlayer = this.g?.myPlayer();
+      const borrower = event.borrower;
+      if (!myPlayer || !myPlayer.isAlive() || !borrower || !borrower.isAlive()) {
+        return;
+      }
+      let tile: TileRef | null = null;
+      const nameLoc = borrower.nameLocation();
+      if (nameLoc && this.g.isValidCoord(nameLoc.x, nameLoc.y)) {
+        const ref = this.g.ref(nameLoc.x, nameLoc.y);
+        if (this.g.ownerID(ref) === borrower.smallID()) {
+          tile = ref;
+        }
+      }
+      if (tile === null) {
+        try {
+          const bt = await borrower.borderTiles();
+          for (const t of bt.borderTiles) {
+            tile = t as TileRef;
+            break;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      let actions: PlayerActions | null = null;
+      if (tile !== null) {
+        try {
+          actions = await myPlayer.actions(tile, null);
+        } catch {
+          // ignore
+        }
+      }
+      this.suppressNextHide = true;
+      this.actions = actions;
+      this.tile = tile;
+      this.sendTarget = null;
+      this.sendMode = "none";
+      this.loanTarget = borrower;
+      this.moderationTarget = null;
+      this.reportTarget = null;
+      this.isVisible = true;
+      this.requestUpdate();
     });
   }
   init() {
@@ -212,6 +260,7 @@ export class PlayerPanel extends LitElement implements Controller {
   public show(actions: PlayerActions, tile: TileRef) {
     this.actions = actions;
     this.tile = tile;
+    this.loanTarget = null;
     this.moderationTarget = null;
     this.reportTarget = null;
     this.isVisible = true;
@@ -228,6 +277,7 @@ export class PlayerPanel extends LitElement implements Controller {
     this.tile = tile;
     this.sendTarget = target;
     this.sendMode = "gold";
+    this.loanTarget = null;
     this.moderationTarget = null;
     this.reportTarget = null;
     this.isVisible = true;
@@ -238,6 +288,7 @@ export class PlayerPanel extends LitElement implements Controller {
     this.isVisible = false;
     this.sendMode = "none";
     this.sendTarget = null;
+    this.loanTarget = null;
     this.moderationTarget = null;
     this.reportTarget = null;
     this.requestUpdate();
@@ -247,6 +298,35 @@ export class PlayerPanel extends LitElement implements Controller {
     e.stopPropagation();
     this.hide();
   }
+
+  private handleRequestLoanClick(e: Event, other: PlayerView) {
+    e.stopPropagation();
+    this.eventBus.emit(new SendLoanRequestIntentEvent(other));
+    showToast(
+      translateText("player_panel.loan_request_sent", {
+        name: other.displayName(),
+      }),
+      "green",
+    );
+    this.hide();
+  }
+
+  private handleGrantLoanClick(e: Event, other: PlayerView) {
+    e.stopPropagation();
+    this.suppressNextHide = true;
+    this.sendTarget = null;
+    this.sendMode = "none";
+    this.loanTarget = other;
+  }
+
+  private closeLoan = () => {
+    this.loanTarget = null;
+  };
+
+  private confirmLoan = (e: CustomEvent<{ closePanel?: boolean }>) => {
+    this.closeLoan();
+    if (e.detail?.closePanel) this.hide();
+  };
 
   private handleAllianceClick(
     e: Event,
@@ -625,6 +705,7 @@ export class PlayerPanel extends LitElement implements Controller {
         ? null
         : this.identityChipProps(other.type());
     const levelBadge = this.levelBadgeFor(other);
+    const hasBank = this.actions?.interaction?.hasInternationalBank === true;
 
     return html`
       <div class="flex items-center gap-2.5 flex-wrap">
@@ -657,6 +738,15 @@ export class PlayerPanel extends LitElement implements Controller {
             ${other.displayName()}
           </h2>
         </div>
+        ${hasBank
+          ? html`<span
+              class="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-200"
+              title=${translateText("unit_type.international_bank")}
+            >
+              <span aria-hidden="true">🏦</span>
+              <span>${translateText("unit_type.international_bank")}</span>
+            </span>`
+          : ""}
         ${chip
           ? html`<span
               class=${`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold ${chip.classes}`}
@@ -677,6 +767,8 @@ export class PlayerPanel extends LitElement implements Controller {
   }
 
   private renderResources(other: PlayerView) {
+    const otherGold = other.gold() ?? 0n;
+    const isNegativeGold = otherGold < 0n;
     return html`
       <div class="mb-1 flex justify-between gap-2">
         <div
@@ -684,8 +776,13 @@ export class PlayerPanel extends LitElement implements Controller {
                     text-white w-35"
         >
           <span class="mr-0.5">💰</span>
-          <span translate="no" class="tabular-nums w-[5ch] font-semibold">
-            ${renderNumber(other.gold() || 0)}
+          <span
+            translate="no"
+            class="tabular-nums w-[5ch] font-semibold ${isNegativeGold
+              ? "text-red-400"
+              : ""}"
+          >
+            ${renderNumber(otherGold)}
           </span>
           <span class="text-zinc-200 whitespace-nowrap">
             ${translateText("player_panel.gold")}</span
@@ -874,6 +971,8 @@ export class PlayerPanel extends LitElement implements Controller {
     const myPlayer = this.g.myPlayer();
     const canDonateGold = this.actions?.interaction?.canDonateGold;
     const canDonateTroops = this.actions?.interaction?.canDonateTroops;
+    const canRequestLoan = this.actions?.interaction?.canRequestLoan;
+    const canGrantLoan = this.actions?.interaction?.canGrantLoan;
     const canSendAllianceRequest =
       this.actions?.interaction?.canSendAllianceRequest;
     const canSendEmoji =
@@ -934,6 +1033,28 @@ export class PlayerPanel extends LitElement implements Controller {
                 title: translateText("player_panel.send_gold"),
                 label: translateText("player_panel.gold"),
                 type: "normal",
+              })
+            : ""}
+          ${canRequestLoan
+            ? actionButton({
+                onClick: (e: MouseEvent) =>
+                  this.handleRequestLoanClick(e, other),
+                icon: donateGoldIcon,
+                iconAlt: "Request Loan",
+                title: translateText("player_panel.request_loan"),
+                label: translateText("player_panel.request_loan"),
+                type: "yellow",
+              })
+            : ""}
+          ${canGrantLoan
+            ? actionButton({
+                onClick: (e: MouseEvent) =>
+                  this.handleGrantLoanClick(e, other),
+                icon: donateGoldIcon,
+                iconAlt: "Grant Loan",
+                title: translateText("player_panel.grant_loan"),
+                label: translateText("player_panel.grant_loan"),
+                type: "green",
               })
             : ""}
         </div>
@@ -1026,15 +1147,22 @@ export class PlayerPanel extends LitElement implements Controller {
     const my = this.g.myPlayer();
     const isSpectator = this.g.isSpectator();
     if (!my && !isSpectator) return html``;
-    if (!this.tile) return html``;
 
-    const owner = this.g.owner(this.tile);
-    if (!owner || !owner.isPlayer()) {
+    let other: PlayerView | null = null;
+    if (this.tile) {
+      const owner = this.g.owner(this.tile);
+      if (owner && owner.isPlayer()) {
+        other = owner as PlayerView;
+      }
+    }
+    if (!other && this.loanTarget?.isAlive()) {
+      other = this.loanTarget;
+    }
+    if (!other) {
       this.hide();
       console.warn("Tile is not owned by a player");
       return html``;
     }
-    const other = owner as PlayerView;
     // Spectators (replay viewers, dead, or pre-spawn) have no live player; use other as a read-only stand-in
     const viewer = my ?? other;
     const myGoldNum = viewer.gold();
@@ -1134,6 +1262,19 @@ export class PlayerPanel extends LitElement implements Controller {
                             @confirm=${this.confirmSend}
                             @close=${this.closeSend}
                           ></send-resource-modal>
+                        `
+                      : ""}
+                    ${this.loanTarget && !isSpectator
+                      ? html`
+                          <grant-loan-modal
+                            .open=${true}
+                            .myPlayer=${viewer}
+                            .target=${this.loanTarget}
+                            .gameView=${this.g}
+                            .eventBus=${this.eventBus}
+                            @confirm=${this.confirmLoan}
+                            @close=${this.closeLoan}
+                          ></grant-loan-modal>
                         `
                       : ""}
                     ${this.moderationTarget

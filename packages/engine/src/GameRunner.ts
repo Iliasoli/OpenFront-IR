@@ -340,6 +340,9 @@ export class GameRunner {
         canDonateTroops: player.canDonateTroops(other),
         canEmbargo: !player.hasEmbargoAgainst(other),
         allianceInfo: player.allianceInfo(other) ?? undefined,
+        canRequestLoan: player.canRequestLoan(other),
+        canGrantLoan: player.canGrantLoan(other),
+        hasInternationalBank: this.game.hasActiveInternationalBank(other),
       };
     }
 

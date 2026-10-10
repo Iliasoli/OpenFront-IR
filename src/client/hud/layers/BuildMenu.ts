@@ -157,6 +157,13 @@ export const buildTable: BuildItemDisplay[][] = [
       key: "unit_type.livestock_farm",
       countable: true,
     },
+    {
+      unitType: UnitType.InternationalBank,
+      icon: goldCoinIcon,
+      description: "build_menu.desc.international_bank",
+      key: "unit_type.international_bank",
+      countable: true,
+    },
   ],
 ];
 
