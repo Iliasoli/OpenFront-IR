@@ -62,6 +62,7 @@ const STRUCTURE_ORDER = [
   UT_DIAMOND_MINE,
   UT_LIVESTOCK_FARM,
   UT_TANK_FACTORY,
+  UT_INTERNATIONAL_BANK,
 ] as const;
 
 /** Max characters per level label (handles up to "99"). */
@@ -154,7 +155,7 @@ export class StructureLevelPass {
   private charCodes = new Uint8Array(MAX_CHARS);
   private cursors = new Float32Array(MAX_CHARS);
 
-  /** unitType string → atlas column index (0–5). */
+  /** unitType string → atlas column index (0–11). */
   private typeToAtlasCol = new Map<string, number>();
   /** Build-button hover highlight bitmask (0 = off). */
   private highlightMask = 0;
@@ -177,15 +178,6 @@ export class StructureLevelPass {
     for (let i = 0; i < STRUCTURE_ORDER.length; i++) {
       this.typeToAtlasCol.set(STRUCTURE_ORDER[i], i);
     }
-
-    this.typeToAtlasCol.set(
-      UT_TANK_FACTORY,
-      this.typeToAtlasCol.get(UT_FACTORY)!,
-    );
-    this.typeToAtlasCol.set(
-      UT_INTERNATIONAL_BANK,
-      this.typeToAtlasCol.get(UT_GOLD_MINE)!,
-    );
 
     this.kernTable = new Int8Array(CHAR_RANGE * CHAR_RANGE); // digits don't kern
 

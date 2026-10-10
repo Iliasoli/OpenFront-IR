@@ -42,6 +42,7 @@ const oilMineIcon = assetUrl("images/OilMineIcon.svg");
 const goldMineIcon = assetUrl("images/GoldMineIcon.svg");
 const diamondMineIcon = assetUrl("images/DiamondMineIcon.svg");
 const livestockFarmIcon = assetUrl("images/LivestockFarmIcon.svg");
+const internationalBankIcon = assetUrl("images/InternationalBankStructureIcon.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -160,7 +161,7 @@ export const buildTable: BuildItemDisplay[][] = [
     },
     {
       unitType: UnitType.InternationalBank,
-      icon: goldCoinIcon,
+      icon: internationalBankIcon,
       description: "build_menu.desc.international_bank",
       key: "unit_type.international_bank",
       countable: true,

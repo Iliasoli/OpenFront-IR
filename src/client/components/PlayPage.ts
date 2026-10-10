@@ -60,7 +60,7 @@ export class PlayPage extends LitElement {
             >
               <img
                 src=${assetUrl("images/OpenFrontLogo.svg")}
-                alt="OpenFront"
+                alt="OpenBI"
                 class="h-full w-auto"
               />
             </div>

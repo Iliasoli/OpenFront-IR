@@ -1,4 +1,4 @@
-﻿import { Structures } from "@openfront/engine-api/game/GameTypes";
+import { Structures } from "@openfront/engine-api/game/GameTypes";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import {
   VersionedSchema,
@@ -19,7 +19,7 @@ import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecutio
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
 import { AiAttackBehavior } from "./utils/AiAttackBehavior";
 import {
-  AI_RESOURCE_STRUCTURE_TYPES,
+  AI_PROTECTED_STRUCTURE_TYPES,
   AiResourceStructureBehavior,
 } from "./utils/AiResourceStructureBehavior";
 
@@ -85,6 +85,7 @@ export class TribeExecution implements Execution {
 
     this.acceptAllAllianceRequests();
     this.resourceStructureBehavior?.handleStructures();
+    this.resourceStructureBehavior?.handleStrategicActions();
     this.deleteNextStructure();
     this.maybeAttack();
   }
@@ -113,8 +114,8 @@ export class TribeExecution implements Execution {
     for (const unit of this.tribe.units()) {
       if (!Structures.has(unit.type())) continue;
       if (
-        AI_RESOURCE_STRUCTURE_TYPES.includes(
-          unit.type() as (typeof AI_RESOURCE_STRUCTURE_TYPES)[number],
+        AI_PROTECTED_STRUCTURE_TYPES.includes(
+          unit.type() as (typeof AI_PROTECTED_STRUCTURE_TYPES)[number],
         )
       ) {
         continue;

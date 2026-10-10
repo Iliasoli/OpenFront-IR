@@ -167,7 +167,7 @@ float mineGlyphAlpha(vec2 p, float atlasIdx) {
     alpha = max(alpha, lineAlpha(p, vec2(-0.08, 0.06), vec2(0.08, 0.06), 0.03));
     alpha = max(alpha, lineAlpha(p, vec2(-0.07, 0.07), vec2(0.07, 0.21), 0.025));
     alpha = max(alpha, lineAlpha(p, vec2(-0.07, 0.21), vec2(0.07, 0.07), 0.025));
-  } else {
+  } else if (atlasIdx < 10.5) {
     // Tank factory: a saw-tooth-roof hangar with a tank at the loading bay.
     alpha = max(alpha, lineAlpha(p, vec2(-0.25, -0.15), vec2(-0.12, -0.27), 0.035));
     alpha = max(alpha, lineAlpha(p, vec2(-0.12, -0.27), vec2(0.0, -0.15), 0.035));
@@ -187,6 +187,21 @@ float mineGlyphAlpha(vec2 p, float atlasIdx) {
     alpha = max(alpha, lineAlpha(p, vec2(-0.02, 0.04), vec2(-0.02, 0.0), 0.03));
     alpha = max(alpha, lineAlpha(p, vec2(-0.02, 0.0), vec2(0.07, 0.0), 0.03));
     alpha = max(alpha, lineAlpha(p, vec2(0.07, 0.0), vec2(0.15, 0.0), 0.025));
+  } else {
+    // International Bank: classical pediment roof, architrave, four columns, and stepped foundation.
+    alpha = max(alpha, lineAlpha(p, vec2(-0.26, -0.08), vec2(0.0, -0.26), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(0.0, -0.26), vec2(0.26, -0.08), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.26, -0.08), vec2(0.26, -0.08), 0.04));
+    // Pediment emblem dot
+    alpha = max(alpha, lineAlpha(p, vec2(0.0, -0.165), vec2(0.0, -0.165), 0.045));
+    // Four classical columns
+    alpha = max(alpha, lineAlpha(p, vec2(-0.18, -0.08), vec2(-0.18, 0.17), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.06, -0.08), vec2(-0.06, 0.17), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(0.06, -0.08), vec2(0.06, 0.17), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(0.18, -0.08), vec2(0.18, 0.17), 0.035));
+    // Two-stepped foundation
+    alpha = max(alpha, lineAlpha(p, vec2(-0.24, 0.17), vec2(0.24, 0.17), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.28, 0.23), vec2(0.28, 0.23), 0.04));
   }
 
   return clamp(alpha, 0.0, 1.0);
@@ -195,7 +210,7 @@ float mineGlyphAlpha(vec2 p, float atlasIdx) {
 // Per-structure-type shape SDF.
 // Atlas indices: 0=City, 1=Port, 2=Factory, 3=DefensePost, 4=SAM,
 // 5=Silo, 6=Oil Mine, 7=Gold Mine, 8=Diamond Mine, 9=Livestock Farm,
-// 10=Tank Factory
+// 10=Tank Factory, 11=International Bank
 float shapeSDF(vec2 p, float R) {
   if (vAtlasIdx < 0.5)
     return length(p) - R;                     // City → circle
@@ -217,7 +232,9 @@ float shapeSDF(vec2 p, float R) {
     return sdPolygon(p, R, 4.0, PI * 0.25);   // Diamond Mine → diamond
   if (vAtlasIdx < 9.5)
     return length(p) - R;                     // Livestock Farm → circle
-  return sdPolygon(p, R, 7.0, PI * 0.5);       // Tank Factory → heptagon
+  if (vAtlasIdx < 10.5)
+    return sdPolygon(p, R, 7.0, PI * 0.5);    // Tank Factory → heptagon
+  return sdPolygon(p, R, 8.0, PI * 0.125);    // International Bank → octagon
 }
 
 void main() {

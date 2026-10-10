@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Triangular pediment roof -->
+  <path
+    d="M8 24L32 9l24 15H8Z"
+    fill="none"
+    stroke="#fff"
+    stroke-linejoin="round"
+    stroke-width="4"
+  />
+  <!-- Center emblem in pediment -->
+  <circle cx="32" cy="18.5" r="3" fill="#fff" />
+  <!-- Architrave beam -->
+  <rect x="10" y="24" width="44" height="4" rx="1" fill="#fff" />
+  <!-- Four classical columns -->
+  <rect x="14" y="28" width="5" height="20" rx="1" fill="#fff" />
+  <rect x="24.5" y="28" width="5" height="20" rx="1" fill="#fff" />
+  <rect x="34.5" y="28" width="5" height="20" rx="1" fill="#fff" />
+  <rect x="45" y="28" width="5" height="20" rx="1" fill="#fff" />
+  <!-- Stepped foundation -->
+  <rect x="10" y="48" width="44" height="4" rx="1" fill="#fff" />
+  <rect x="6" y="52" width="52" height="5" rx="1.5" fill="#fff" />
+</svg>

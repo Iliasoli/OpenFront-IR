@@ -229,6 +229,7 @@ export class NationExecution implements Execution {
     if (!builtStructure) {
       this.resourceStructureBehavior.handleStructures();
     }
+    this.resourceStructureBehavior.handleStrategicActions();
     this.warshipBehavior.maybeSpawnWarship();
     this.handleEmbargoesToHostileNations();
     this.attackBehavior.maybeAttack();

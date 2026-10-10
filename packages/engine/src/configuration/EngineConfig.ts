@@ -460,9 +460,18 @@ export class EngineConfig extends Config {
     costFn: (units: number) => number,
     ...types: UnitType[]
   ): (g: Game, p: Player, extraUnits?: number) => bigint {
+    const isAiResourceType = types.some(
+      (t) =>
+        t === UnitType.OilMine ||
+        t === UnitType.GoldMine ||
+        t === UnitType.DiamondMine ||
+        t === UnitType.LivestockFarm ||
+        t === UnitType.TankFactory,
+    );
     return (game: Game, player: Player, extraUnits: number = 0) => {
       if (
-        player.type() === PlayerType.Human &&
+        (player.type() === PlayerType.Human ||
+          (this.aiResourceStructures() && isAiResourceType)) &&
         this.hasInfiniteGoldFor(player)
       ) {
         return 0n;

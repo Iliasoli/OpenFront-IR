@@ -572,6 +572,7 @@ export class InputHandler {
       "buildDiamondMine",
       "buildLivestockFarm",
       "buildTankFactory",
+      "buildInternationalBank",
     ];
     buildKeybinds = buildKeybinds.map((i: string): string => {
       return this.keybinds[i];
@@ -1543,6 +1544,7 @@ export class InputHandler {
       { key: "buildDiamondMine", type: UnitType.DiamondMine },
       { key: "buildLivestockFarm", type: UnitType.LivestockFarm },
       { key: "buildTankFactory", type: UnitType.TankFactory },
+      { key: "buildInternationalBank", type: UnitType.InternationalBank },
     ];
     for (const { key, type } of buildKeybinds) {
       if (this.keybindMatchesEvent({ code, shiftKey }, this.keybinds[key]))

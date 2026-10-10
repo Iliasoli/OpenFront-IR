@@ -217,7 +217,7 @@ export async function buildPreview(
     ? `${mode ?? "Game"} on ${map ?? "Unknown Map"}${gameTypeLabel}`
     : mode && map
       ? `${mode} on ${map}${gameTypeLabel}`
-      : "OpenFront Game";
+      : "OpenBI Game";
 
   let description: string;
   if (isFinished) {

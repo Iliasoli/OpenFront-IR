@@ -59,7 +59,7 @@ export class DesktopNavBar extends LitElement {
             <img
               class="block h-full aspect-[1364/259]"
               src=${assetUrl("images/OpenFrontLogo.svg")}
-              alt="OpenFront"
+              alt="OpenBI"
             />
           </div>
           <div

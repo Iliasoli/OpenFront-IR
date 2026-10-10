@@ -3,9 +3,11 @@ import {
   PlayerType,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
+import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
 import { LoanApproveExecution } from "@openfront/engine/execution/LoanApproveExecution";
 import { LoanRequestExecution } from "@openfront/engine/execution/LoanRequestExecution";
+import { AiResourceStructureBehavior } from "@openfront/engine/execution/utils/AiResourceStructureBehavior";
 import { Game, Player } from "@openfront/engine/game/Game";
 import { playerInfo, setup } from "./util/Setup";
 
@@ -260,6 +262,58 @@ describe("International Bank and Loan System", () => {
 
     expect(other.gold()).toBeGreaterThanOrEqual(100_000_000n);
     expect(admin.gold()).toBeGreaterThanOrEqual(adminGoldBeforeLoan);
+  });
+
+  test("Bots/AI can build International Bank, request loans, and approve/reject loans", () => {
+    player1.addGold(600_000_000n);
+    advanceTo10Minutes();
+
+    const aiBanker = new AiResourceStructureBehavior(
+      new PseudoRandom(101),
+      game,
+      player1,
+    );
+    const aiBorrower = new AiResourceStructureBehavior(
+      new PseudoRandom(202),
+      game,
+      player2,
+    );
+
+    // AI player1 is the biggest player with >= 500M gold -> builds International Bank
+    expect(aiBanker.handleStrategicActions()).toBe(true);
+    game.executeNextTick();
+    game.executeNextTick();
+
+    expect(player1.units(UnitType.InternationalBank).length).toBe(1);
+    expect(game.internationalBankOwner()).toBe(player1);
+
+    // AI player2 is low on gold -> requests a loan from player1
+    player2.removeGold(player2.gold());
+    expect(player2.gold()).toBe(0n);
+    expect(aiBorrower.handleStrategicActions()).toBe(true);
+    game.executeNextTick();
+
+    expect(game.hasPendingLoanRequest(player2, player1)).toBe(true);
+
+    // AI player1 approves the pending loan request from neutral player2
+    expect(aiBanker.handleStrategicActions()).toBe(true);
+    game.executeNextTick();
+
+    expect(game.hasPendingLoanRequest(player2, player1)).toBe(false);
+    expect(player2.gold()).toBeGreaterThan(0n);
+
+    // If player2 is embargoed by player1, AI player1 rejects the loan request
+    player1.addEmbargo(player2, false);
+    game.addExecution(new LoanRequestExecution(player2, player1.id()));
+    game.executeNextTick();
+    expect(game.hasPendingLoanRequest(player2, player1)).toBe(true);
+
+    const borrowerGoldBeforeReject = player2.gold();
+    expect(aiBanker.handleStrategicActions()).toBe(true);
+    game.executeNextTick();
+
+    expect(game.hasPendingLoanRequest(player2, player1)).toBe(false);
+    expect(player2.gold()).toBe(borrowerGoldBeforeReject);
   });
 });
 

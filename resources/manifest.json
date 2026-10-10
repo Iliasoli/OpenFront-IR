@@ -18,8 +18,8 @@
   "display": "standalone",
   "dir": "auto",
   "lang": "en",
-  "name": "OpenFront.io",
-  "short_name": "OpenFront",
+  "name": "OpenBI",
+  "short_name": "OpenBI",
   "start_url": "/",
   "id": "/"
 }

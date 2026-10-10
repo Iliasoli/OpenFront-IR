@@ -167,6 +167,14 @@
       "Livestock Farm": {
         "scale": 1.1,
         "iconFill": 0.85
+      },
+      "Tank Factory": {
+        "scale": 1.25,
+        "iconFill": 0.85
+      },
+      "International Bank": {
+        "scale": 1.35,
+        "iconFill": 0.85
       }
     },
     "highlightOutlineWidth": 0.04,

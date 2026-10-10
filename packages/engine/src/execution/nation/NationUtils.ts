@@ -17,7 +17,11 @@ export function randTerritoryTileArray(
   player: Player,
   numTiles: number,
 ): TileRef[] {
-  const boundingBox = calculateBoundingBox(mg, player.borderTiles());
+  const borderTiles = player.borderTiles();
+  const boundingBox = calculateBoundingBox(
+    mg,
+    borderTiles.size > 0 ? borderTiles : player.tiles(),
+  );
   const tiles: TileRef[] = [];
   for (let i = 0; i < numTiles; i++) {
     const tile = randTerritoryTile(random, mg, player, boundingBox);
@@ -35,7 +39,11 @@ function randTerritoryTile(
   boundingBox: { min: Cell; max: Cell } | null = null,
 ): TileRef | null {
   // Prefer sampling inside the bounding box first (fast, usually good enough)
-  boundingBox ??= calculateBoundingBox(mg, p.borderTiles());
+  const borderTiles = p.borderTiles();
+  boundingBox ??= calculateBoundingBox(
+    mg,
+    borderTiles.size > 0 ? borderTiles : p.tiles(),
+  );
   for (let i = 0; i < 100; i++) {
     const randX = random.nextInt(boundingBox.min.x, boundingBox.max.x);
     const randY = random.nextInt(boundingBox.min.y, boundingBox.max.y);
