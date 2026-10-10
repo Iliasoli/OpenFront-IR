@@ -17,14 +17,15 @@ import {
   STRUCTURE_TYPES,
   UT_CITY,
   UT_DEFENSE_POST,
+  UT_DIAMOND_MINE,
   UT_FACTORY,
+  UT_GOLD_MINE,
+  UT_LIVESTOCK_FARM,
   UT_MISSILE_SILO,
+  UT_OIL_MINE,
   UT_PORT,
   UT_SAM_LAUNCHER,
-  UT_OIL_MINE,
-  UT_GOLD_MINE,
-  UT_DIAMOND_MINE,
-  UT_LIVESTOCK_FARM,
+  UT_TANK_FACTORY,
 } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import type { RenderSettings } from "../RenderSettings";
@@ -174,6 +175,10 @@ export class StructureLevelPass {
     for (let i = 0; i < STRUCTURE_ORDER.length; i++) {
       this.typeToAtlasCol.set(STRUCTURE_ORDER[i], i);
     }
+    this.typeToAtlasCol.set(
+      UT_TANK_FACTORY,
+      this.typeToAtlasCol.get(UT_FACTORY)!,
+    );
 
     this.kernTable = new Int8Array(CHAR_RANGE * CHAR_RANGE); // digits don't kern
 

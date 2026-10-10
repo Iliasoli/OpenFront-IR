@@ -7,6 +7,7 @@ import {
   ContextMenuEvent,
   MouseUpEvent,
   SelectAllWarshipsEvent,
+  TankMoveDestinationClickEvent,
   TouchEvent,
   UnitSelectionEvent,
   WarshipSelectionBoxCancelEvent,
@@ -15,7 +16,7 @@ import {
 } from "../InputHandler";
 import { MapRenderer } from "../render/gl";
 import { TransformHandler } from "../TransformHandler";
-import { MoveWarshipIntentEvent } from "../Transport";
+import { MoveTankIntentEvent, MoveWarshipIntentEvent } from "../Transport";
 import { GameView, UnitView } from "../view";
 
 const WARSHIP_SELECTION_RADIUS = 10;
@@ -36,8 +37,10 @@ export class WarshipSelectionController implements Controller {
   // Currently selected single warship (game-logic readers use this; the
   // visual is drawn by WebGL SelectionBoxPass).
   private selectedUnit: UnitView | null = null;
+  private selectedTank: UnitView | null = null;
   // Currently multi-selected warships (shift+drag box select).
   private multiSelectedWarships: UnitView[] = [];
+  private multiSelectedTanks: UnitView[] = [];
 
   // Drag rectangle (shift+drag warship selection box) — a screen-space DOM
   // overlay positioned via inline style.
@@ -57,6 +60,9 @@ export class WarshipSelectionController implements Controller {
     this.multiSelectedWarships = this.multiSelectedWarships.filter((u) =>
       u.isActive(),
     );
+    this.multiSelectedTanks = this.multiSelectedTanks.filter((u) =>
+      u.isActive(),
+    );
   }
 
   init() {
@@ -73,6 +79,9 @@ export class WarshipSelectionController implements Controller {
 
     // Warship select/move click flow (previously in the deleted UnitLayer).
     this.eventBus.on(MouseUpEvent, (e) => this.onMouseUp(e));
+    this.eventBus.on(TankMoveDestinationClickEvent, (e) =>
+      this.moveTanksTo(e.x, e.y),
+    );
     this.eventBus.on(TouchEvent, (e) => this.onTouch(e));
     this.eventBus.on(WarshipSelectionBoxCompleteEvent, (e) =>
       this.onSelectionBoxComplete(e),
@@ -177,7 +186,26 @@ export class WarshipSelectionController implements Controller {
       if (!this.game.isValidCoord(cell.x, cell.y)) return;
       clickRef = this.game.ref(cell.x, cell.y);
     }
-    if (!this.game.isWater(clickRef)) return;
+    if (!this.game.isWater(clickRef)) {
+      const myPlayer = this.game.myPlayer();
+      const tanks = this.game
+        .units(UnitType.Tank)
+        .filter(
+          (u) =>
+            u.isActive() &&
+            u.owner() === myPlayer &&
+            this.game.manhattanDist(u.tile(), clickRef) <=
+              WARSHIP_SELECTION_RADIUS,
+        )
+        .sort(
+          (a, b) =>
+            this.game.manhattanDist(a.tile(), clickRef) -
+            this.game.manhattanDist(b.tile(), clickRef),
+        );
+      if (tanks.length > 0)
+        this.eventBus.emit(new UnitSelectionEvent(tanks[0], true));
+      return;
+    }
 
     if (this.multiSelectedWarships.length > 0) {
       const myPlayer = this.game.myPlayer();
@@ -206,6 +234,31 @@ export class WarshipSelectionController implements Controller {
     }
   }
 
+  private moveTanksTo(screenX: number, screenY: number): void {
+    const myPlayer = this.game.myPlayer();
+    if (!myPlayer) return;
+    const cell = this.transformHandler.screenToWorldCoordinates(
+      screenX,
+      screenY,
+    );
+    if (!this.game.isValidCoord(cell.x, cell.y)) return;
+    const tile = this.game.ref(cell.x, cell.y);
+    if (this.game.isWater(tile) || this.game.isImpassable(tile)) return;
+
+    const selected =
+      this.multiSelectedTanks.length > 0
+        ? this.multiSelectedTanks
+        : this.selectedTank
+          ? [this.selectedTank]
+          : this.game
+              .units(UnitType.Tank)
+              .filter((unit) => unit.isActive() && unit.owner() === myPlayer);
+    const ids = selected
+      .filter((unit) => unit.isActive() && unit.owner() === myPlayer)
+      .map((unit) => unit.id());
+    if (ids.length > 0) this.eventBus.emit(new MoveTankIntentEvent(ids, tile));
+  }
+
   /**
    * Touch handler mirroring mouse-up. On dry land with no selection, falls
    * back to opening the radial menu.
@@ -225,6 +278,23 @@ export class WarshipSelectionController implements Controller {
       return;
     }
     if (!this.game.isWater(clickRef)) {
+      if (this.selectedTank) {
+        this.onMouseUp(new MouseUpEvent(event.x, event.y), clickRef);
+        return;
+      }
+      const nearbyTanks = this.game
+        .units(UnitType.Tank)
+        .some(
+          (u) =>
+            u.isActive() &&
+            u.owner() === this.game.myPlayer() &&
+            this.game.manhattanDist(u.tile(), clickRef) <=
+              WARSHIP_SELECTION_RADIUS,
+        );
+      if (nearbyTanks) {
+        this.onMouseUp(new MouseUpEvent(event.x, event.y), clickRef);
+        return;
+      }
       this.eventBus.emit(new ContextMenuEvent(event.x, event.y));
       return;
     }
@@ -257,7 +327,10 @@ export class WarshipSelectionController implements Controller {
     const myPlayer = this.game.myPlayer();
     if (!myPlayer) return;
 
-    const selected = this.game.units(UnitType.Warship).filter((unit) => {
+    const selected = [
+      ...this.game.units(UnitType.Warship),
+      ...this.game.units(UnitType.Tank),
+    ].filter((unit) => {
       if (!unit.isActive() || unit.owner() !== myPlayer) return false;
       const screen = this.transformHandler.worldToScreenCoordinates(
         new Cell(this.game.x(unit.tile()), this.game.y(unit.tile())),
@@ -310,7 +383,9 @@ export class WarshipSelectionController implements Controller {
    */
   private onUnitSelection(event: UnitSelectionEvent) {
     this.multiSelectedWarships = [];
+    this.multiSelectedTanks = [];
     this.selectedUnit = null;
+    this.selectedTank = null;
 
     if (!event.isSelected) {
       this.view.setSelectedUnits([]);
@@ -318,10 +393,16 @@ export class WarshipSelectionController implements Controller {
     }
 
     if ((event.units ?? []).length > 0) {
-      this.multiSelectedWarships = event.units;
+      this.multiSelectedWarships = event.units.filter(
+        (u) => u.type() === UnitType.Warship,
+      );
+      this.multiSelectedTanks = event.units.filter(
+        (u) => u.type() === UnitType.Tank,
+      );
       this.view.setSelectedUnits(event.units.map((u) => u.id()));
     } else {
-      this.selectedUnit = event.unit;
+      if (event.unit?.type() === UnitType.Tank) this.selectedTank = event.unit;
+      else this.selectedUnit = event.unit;
       this.view.setSelectedUnits(event.unit ? [event.unit.id()] : []);
     }
   }

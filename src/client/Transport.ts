@@ -218,6 +218,12 @@ export class MoveWarshipIntentEvent implements GameEvent {
     public readonly tile: number,
   ) {}
 }
+export class MoveTankIntentEvent implements GameEvent {
+  constructor(
+    public readonly unitIds: number[],
+    public readonly tile: number,
+  ) {}
+}
 
 // One-shot marker that this lobby has already sent us to a sibling, so a
 // redirect can never become a bounce.
@@ -335,6 +341,9 @@ export class Transport {
 
     this.subscribe(MoveWarshipIntentEvent, (e) => {
       this.onMoveWarshipEvent(e);
+    });
+    this.subscribe(MoveTankIntentEvent, (e) => {
+      this.sendIntent({ type: "move_tank", unitIds: e.unitIds, tile: e.tile });
     });
 
     this.subscribe(SendDeleteUnitIntentEvent, (e) =>

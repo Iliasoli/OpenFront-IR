@@ -19,6 +19,7 @@ import { FactoryExecutionSnapshot } from "../execution/FactoryExecution";
 import { MarkDisconnectedExecutionSnapshot } from "../execution/MarkDisconnectedExecution";
 import { MirvExecutionSnapshot } from "../execution/MIRVExecution";
 import { MissileSiloExecutionSnapshot } from "../execution/MissileSiloExecution";
+import { MoveTankExecutionSnapshot } from "../execution/MoveTankExecution";
 import { MoveWarshipExecutionSnapshot } from "../execution/MoveWarshipExecution";
 import { NationExecutionSnapshot } from "../execution/NationExecution";
 import { NoOpExecutionSnapshot } from "../execution/NoOpExecution";
@@ -34,6 +35,8 @@ import { SAMMissileExecutionSnapshot } from "../execution/SAMMissileExecution";
 import { ShellExecutionSnapshot } from "../execution/ShellExecution";
 import { SpawnExecutionSnapshot } from "../execution/SpawnExecution";
 import { SpawnTimerExecutionSnapshot } from "../execution/SpawnTimerExecution";
+import { TankExecutionSnapshot } from "../execution/TankExecution";
+import { TankFactoryExecutionSnapshot } from "../execution/TankFactoryExecution";
 import { TargetPlayerExecutionSnapshot } from "../execution/TargetPlayerExecution";
 import { TradeShipExecutionSnapshot } from "../execution/TradeShipExecution";
 import { TrainExecutionSnapshot } from "../execution/TrainExecution";
@@ -97,4 +100,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   UpgradeStructureExecutionSnapshot,
   WarshipExecutionSnapshot,
   WinCheckExecutionSnapshot,
+  MoveTankExecutionSnapshot,
+  TankExecutionSnapshot,
+  TankFactoryExecutionSnapshot,
 ] as unknown as readonly ExecutionSnapshotType<unknown>[];

@@ -36,6 +36,17 @@ export class TouchEvent implements GameEvent {
   ) {}
 }
 
+export class TankMoveModeEvent implements GameEvent {
+  constructor(public readonly active: boolean) {}
+}
+
+export class TankMoveDestinationClickEvent implements GameEvent {
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+  ) {}
+}
+
 /**
  * Event emitted when one or more warships are selected or deselected.
  * For single selection: unit is set, units is empty.
@@ -316,6 +327,7 @@ export class InputHandler {
   private keybinds: Record<string, string> = {};
   private keybindAndEvent: Array<[string, KeybindEntry]> = [];
   private coordinateGridEnabled = false;
+  private tankMoveModeActive = false;
 
   private readonly PAN_SPEED = 5;
   private readonly ZOOM_SPEED = 10;
@@ -350,9 +362,15 @@ export class InputHandler {
     this.eventBus.on(UnitSelectionEvent, this.onUnitSelection);
     this.eventBus.off(EmojiTableVisibleEvent, this.onEmojiTableVisible);
     this.eventBus.on(EmojiTableVisibleEvent, this.onEmojiTableVisible);
+    this.eventBus.off(TankMoveModeEvent, this.onTankMoveMode);
+    this.eventBus.on(TankMoveModeEvent, this.onTankMoveMode);
 
     this.initializePointerAndKeyboardEvents();
   }
+
+  private onTankMoveMode = (event: TankMoveModeEvent) => {
+    this.tankMoveModeActive = event.active;
+  };
 
   private onEmojiTableVisible = (e: EmojiTableVisibleEvent) => {
     this.emojiTableOpen = e.visible;
@@ -1159,6 +1177,12 @@ export class InputHandler {
       Math.abs(event.x - this.lastPointerDownX) +
       Math.abs(event.y - this.lastPointerDownY);
     if (dist < this.DRAG_THRESHOLD_PX) {
+      if (this.tankMoveModeActive) {
+        this.eventBus.emit(new TankMoveDestinationClickEvent(event.x, event.y));
+        this.eventBus.emit(new TankMoveModeEvent(false));
+        event.preventDefault();
+        return;
+      }
       if (event.pointerType === "touch") {
         if (this.suppressNextTap) {
           this.suppressNextTap = false;

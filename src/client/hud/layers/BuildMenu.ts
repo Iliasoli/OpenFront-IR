@@ -123,6 +123,13 @@ export const buildTable: BuildItemDisplay[][] = [
       countable: true,
     },
     {
+      unitType: UnitType.TankFactory,
+      icon: factoryIcon,
+      description: "build_menu.desc.tank_factory",
+      key: "unit_type.tank_factory",
+      countable: true,
+    },
+    {
       unitType: UnitType.OilMine,
       icon: oilMineIcon,
       description: "build_menu.desc.oil_mine",

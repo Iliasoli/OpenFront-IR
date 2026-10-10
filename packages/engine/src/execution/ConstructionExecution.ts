@@ -22,6 +22,8 @@ import { MissileSiloExecution } from "./MissileSiloExecution";
 import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
+import { TankExecution } from "./TankExecution";
+import { TankFactoryExecution } from "./TankFactoryExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
@@ -168,6 +170,12 @@ export class ConstructionExecution implements Execution {
       case UnitType.Factory:
         this.mg.addExecution(new FactoryExecution(this.structure!));
         break;
+      case UnitType.TankFactory:
+        this.mg.addExecution(new TankFactoryExecution(this.structure!));
+        break;
+      case UnitType.Tank:
+        this.mg.addExecution(new TankExecution(this.structure!));
+        break;
       case UnitType.OilMine:
       case UnitType.GoldMine:
       case UnitType.DiamondMine:
@@ -178,16 +186,18 @@ export class ConstructionExecution implements Execution {
 
         // Promote nearby eligible consumers so an existing City/Port/Factory/
         // Missile Silo can immediately become the rail endpoint for surplus.
-        const nearbyConsumers = this.mg.nearbyUnits(
-          this.structure!.tile(),
-          this.mg.config().trainStationMaxRange(),
-          [
-            UnitType.City,
-            UnitType.MissileSilo,
-            UnitType.Factory,
-            UnitType.Port,
-          ],
-        ).filter(({ unit }) => unit.owner() === this.structure!.owner());
+        const nearbyConsumers = this.mg
+          .nearbyUnits(
+            this.structure!.tile(),
+            this.mg.config().trainStationMaxRange(),
+            [
+              UnitType.City,
+              UnitType.MissileSilo,
+              UnitType.Factory,
+              UnitType.Port,
+            ],
+          )
+          .filter(({ unit }) => unit.owner() === this.structure!.owner());
         for (const { unit } of nearbyConsumers) {
           if (!unit.hasTrainStation()) {
             this.mg.addExecution(new TrainStationExecution(unit));
@@ -211,6 +221,7 @@ export class ConstructionExecution implements Execution {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.TankFactory:
       case UnitType.OilMine:
       case UnitType.GoldMine:
       case UnitType.DiamondMine:

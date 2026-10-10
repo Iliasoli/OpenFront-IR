@@ -56,6 +56,7 @@ import {
 } from "./TerrainMapFileLoader";
 import { GoToPlayerEvent } from "./TransformHandler";
 import {
+  MoveTankIntentEvent,
   MoveWarshipIntentEvent,
   NewLobbyEvent,
   SendAllianceExtensionIntentEvent,
@@ -611,6 +612,16 @@ function mountWebGLFrameLoop(
     const firstUnit = gameView.unit(e.unitIds[0]);
     if (firstUnit === undefined) return;
     view.showMoveIndicator(tx, ty, firstUnit.owner().smallID());
+  });
+  eventBus.on(MoveTankIntentEvent, (e) => {
+    const tile = e.tile;
+    const firstUnit = gameView.unit(e.unitIds[0]);
+    if (firstUnit === undefined) return;
+    view.showMoveIndicator(
+      gameView.x(tile),
+      gameView.y(tile),
+      firstUnit.owner().smallID(),
+    );
   });
 
   // Self-driving RAF: syncCamera reads the latest camera state from

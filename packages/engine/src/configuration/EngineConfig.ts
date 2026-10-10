@@ -362,6 +362,7 @@ export class EngineConfig extends Config {
           UnitType.City,
         );
       case UnitType.Factory:
+      case UnitType.TankFactory:
         return this.costWrapper(
           (numUnits: number) => Math.min(1_000_000, pow2(numUnits) * 125_000),
           UnitType.Factory,
@@ -393,6 +394,7 @@ export class EngineConfig extends Config {
       case UnitType.MIRVWarhead:
       case UnitType.TradeShip:
       case UnitType.Train:
+      case UnitType.Tank:
         return () => 0n;
       default:
         assertNever(type);
@@ -721,11 +723,7 @@ export class EngineConfig extends Config {
     return this.mineIncome(type, level, player) * 3n;
   }
 
-  mineIncome(
-    type: UnitType,
-    level: number,
-    player: PlayerLike,
-  ): Gold {
+  mineIncome(type: UnitType, level: number, player: PlayerLike): Gold {
     const base = (() => {
       switch (type) {
         case UnitType.OilMine:
@@ -741,11 +739,7 @@ export class EngineConfig extends Config {
       }
     })();
     return BigInt(
-      Math.floor(
-        base *
-          Math.max(1, level) *
-          this.goldMultiplierFor(player),
-      ),
+      Math.floor(base * Math.max(1, level) * this.goldMultiplierFor(player)),
     );
   }
 

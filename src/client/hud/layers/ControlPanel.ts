@@ -1,5 +1,10 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
-import { GameMode, GameType, Gold } from "@openfront/engine-api/game/GameTypes";
+import {
+  GameMode,
+  GameType,
+  Gold,
+  UnitType,
+} from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { ClientID } from "@openfront/engine-api/Schemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
@@ -10,7 +15,7 @@ import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { keyed } from "lit/directives/keyed.js";
 import { Controller } from "../../Controller";
-import { AttackRatioEvent } from "../../InputHandler";
+import { AttackRatioEvent, TankMoveModeEvent } from "../../InputHandler";
 import { UIState } from "../../UIState";
 import { USER_SETTINGS_CHANGED_EVENT, UserSettings } from "../../UserSettings";
 import { getGamesPlayed, translateText } from "../../Utils";
@@ -19,6 +24,7 @@ import { PlayerView } from "../../view/PlayerView";
 import { goldCoinIcon, soldierIcon } from "../HotbarIcons";
 import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
 const swordIcon = assetUrl("images/SwordIcon.svg");
+const tankIcon = assetUrl("images/TankUnit.png");
 
 @customElement("control-panel")
 export class ControlPanel extends LitElement implements Controller {
@@ -60,6 +66,9 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private _tutorialHighlight: TutorialHighlight | null = null;
+
+  @state()
+  private _tankMoveMode = false;
 
   private _troopRateIsIncreasing: boolean = true;
 
@@ -110,6 +119,10 @@ export class ControlPanel extends LitElement implements Controller {
 
       this.attackRatio = newAttackRatio;
       this.onAttackRatioChange(this.attackRatio);
+    });
+    this.eventBus.on(TankMoveModeEvent, (event) => {
+      this._tankMoveMode = event.active;
+      this.requestUpdate();
     });
   }
 
@@ -498,6 +511,53 @@ export class ControlPanel extends LitElement implements Controller {
     `;
   }
 
+  private renderTankMoveButton() {
+    const player = this.game?.myPlayer();
+    if (
+      !player ||
+      !player.isAlive() ||
+      !this.game
+        .units(UnitType.Tank)
+        .some((unit) => unit.isActive() && unit.owner() === player)
+    )
+      return html``;
+
+    return html`
+      <div class="flex items-center justify-end gap-2 mb-1">
+        ${this._tankMoveMode
+          ? html`<span class="text-xs font-medium text-amber-200"
+              >${translateText("control_panel.tank_move_prompt")}</span
+            >`
+          : ""}
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold shadow-md ${this
+            ._tankMoveMode
+            ? "border-amber-300 bg-amber-500/30 text-amber-100"
+            : "border-sky-300/70 bg-slate-900/85 text-white hover:bg-sky-900/80"}"
+          aria-pressed=${this._tankMoveMode}
+          @click=${() =>
+            this.eventBus.emit(new TankMoveModeEvent(!this._tankMoveMode))}
+        >
+          <img
+            src=${tankIcon}
+            alt=""
+            aria-hidden="true"
+            width="18"
+            height="18"
+          />
+          <span
+            >${translateText(
+              this._tankMoveMode
+                ? "control_panel.tank_move_cancel"
+                : "control_panel.tank_move_button",
+            )}</span
+          >
+        </button>
+      </div>
+    `;
+  }
+
   private renderDesktop() {
     return html`
       ${this.renderNotification()}
@@ -687,6 +747,7 @@ export class ControlPanel extends LitElement implements Controller {
           : "hidden"}"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
+        ${this.renderTankMoveButton()}
         <div class="lg:hidden">${this.renderMobile()}</div>
         <div class="hidden lg:block">${this.renderDesktop()}</div>
       </div>

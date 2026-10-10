@@ -13,7 +13,7 @@
  *   Ground/sea (boats, trains) → rendered below structures
  *   Missiles (nukes, shells, SAM, MIRV warheads) → rendered above structures
  *
- * Atlas layout (12 columns × 13px cells, pre-built by generate-sprite-atlases.mjs):
+ * Atlas layout (13 columns × 13px cells, pre-built by generate-sprite-atlases.mjs):
  *   Col 0: Transport (5×5)
  *   Col 1: Trade Ship (5×5)
  *   Col 2: Warship (11×11)
@@ -26,6 +26,7 @@
  *   Col 9: Train Engine (5×5)
  *   Col 10: Train Carriage (5×5)
  *   Col 11: Train Carriage Loaded (5×5)
+ *   Col 12: Tank (13×13)
  *
  * Data flow:
  *   FrameSnapshot.units → filter by typeToAtlasIdx → instance VBO → GPU
@@ -44,6 +45,7 @@ import {
   UT_MIRV_WARHEAD,
   UT_SAM_MISSILE,
   UT_SHELL,
+  UT_TANK,
   UT_TRADE_SHIP,
   UT_TRAIN,
   UT_TRANSPORT,
@@ -85,6 +87,7 @@ const UNIT_ORDER = [
   "TrainEngine",
   "TrainCarriage",
   "TrainCarriageLoaded",
+  UT_TANK,
 ] as const;
 
 const ATLAS_COLS = UNIT_ORDER.length;
@@ -98,6 +101,7 @@ const WARSHIP_COL = UNIT_ORDER.indexOf(UT_WARSHIP);
 /** First atlas column of the train sprites (engine, carriage, loaded
  *  carriage are contiguous) — gates the train cosmetic effect. */
 const TRAIN_FIRST_COL = UNIT_ORDER.indexOf("TrainEngine");
+const TRAIN_LAST_COL = UNIT_ORDER.indexOf("TrainCarriageLoaded");
 
 // ---------------------------------------------------------------------------
 // Instance data layout
@@ -106,7 +110,7 @@ const TRAIN_FIRST_COL = UNIT_ORDER.indexOf("TrainEngine");
 /**
  * Per-instance data (16 bytes):
  *   float x, y, ownerID   — 12 bytes (3 floats)
- *   uint8 atlasIdx         —  1 byte  (atlas column 0–11)
+ *   uint8 atlasIdx         —  1 byte  (atlas column 0–12)
  *   uint8 flags            —  1 byte  (0 = normal, 1 = flicker, 2 = angry, 3 = trade-friendly, 4 = retreating, 5 = flicker-untargetable)
  *   uint8 flickerHash      —  1 byte  (per-instance flicker phase offset)
  *   1 byte padding         — aligns to 4-byte boundary
@@ -297,6 +301,7 @@ export class UnitPass {
         WARSHIP_COL,
         WARSHIP_EFFECT_ROW_BASE: WARSHIP_EFFECT_BLOCK * MAX_TRAIL_COLORS,
         TRAIN_FIRST_COL,
+        TRAIN_LAST_COL,
         TRAIN_EFFECT_ROW_BASE: TRAIN_EFFECT_BLOCK * MAX_TRAIL_COLORS,
       }),
       "UnitPass",

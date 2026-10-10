@@ -221,6 +221,9 @@ export class Config {
       case UnitType.Warship:
         info = { maxHealth: 1000 };
         break;
+      case UnitType.Tank:
+        info = { maxHealth: 600 };
+        break;
       case UnitType.Shell:
         info = { damage: 250 };
         break;
@@ -249,6 +252,7 @@ export class Config {
         break;
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.TankFactory:
       case UnitType.OilMine:
       case UnitType.GoldMine:
       case UnitType.DiamondMine:
