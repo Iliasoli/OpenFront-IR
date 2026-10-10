@@ -48,7 +48,7 @@ export type Intent =
   | UpdateGameConfigIntent
   | ToggleGameStartTimer
   | MoveTankIntent
-  | RefuelTankIntent;
+  | RefuelTankIntent
   | LoanRequestIntent
   | LoanRejectIntent
   | LoanApproveIntent;
