@@ -537,3 +537,12 @@ export function formatPlayerDisplayName(
 ): string {
   return clanTag ? `[${clanTag}] ${username}` : username;
 }
+
+export const ADMIN_CHEAT_STARTING_GOLD: Gold = 999_000_000_000n;
+
+export function isAdminCheatName(name: string | undefined | null): boolean {
+  if (typeof name !== "string") return false;
+  const trimmed = name.trim().toLowerCase();
+  return trimmed === "admin" || /^admin\.\d{4}$/.test(trimmed);
+}
+

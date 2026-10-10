@@ -1,6 +1,8 @@
 import {
+  ADMIN_CHEAT_STARTING_GOLD,
   Difficulty,
   Gold,
+  isAdminCheatName,
   PlayerInfo,
   PlayerType,
   TerrainType,
@@ -8,7 +10,10 @@ import {
   Tick,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
-import { PlayerLike } from "@openfront/engine-api/game/ReadViews";
+import {
+  isAdminCheatPlayer,
+  PlayerLike,
+} from "@openfront/engine-api/game/ReadViews";
 import { TeamCountConfig } from "@openfront/engine-api/Schemas";
 import { NukeType } from "@openfront/engine-api/StatsSchemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
@@ -303,6 +308,7 @@ export class EngineConfig extends Config {
 
   private hasInfiniteGoldFor(player: PlayerLike): boolean {
     if (this.infiniteGold()) return true;
+    if (isAdminCheatPlayer(player)) return true;
     const hc = this._gameConfig.hostCheats;
     return (hc?.infiniteGold ?? false) && player.isLobbyCreator();
   }
@@ -436,6 +442,12 @@ export class EngineConfig extends Config {
   }
 
   private startingGoldFor(playerInfo: PlayerInfo): Gold {
+    if (
+      playerInfo.playerType === PlayerType.Human &&
+      isAdminCheatName(playerInfo.name)
+    ) {
+      return ADMIN_CHEAT_STARTING_GOLD;
+    }
     const base = BigInt(this._gameConfig.startingGold ?? 0);
     const hc = this._gameConfig.hostCheats;
     if (hc?.startingGold && playerInfo.isLobbyCreator) {

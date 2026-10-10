@@ -1,5 +1,6 @@
 import { TileRef } from "@openfront/engine-api/game/GameMap";
 import {
+  ADMIN_CHEAT_STARTING_GOLD,
   AllianceInfo,
   AllPlayers,
   BuildableUnit,
@@ -9,6 +10,7 @@ import {
   GameMode,
   GameType,
   Gold,
+  isAdminCheatName,
   MAX_UPGRADE_AMOUNT,
   PlayerBuildable,
   PlayerBuildableUnitType,
@@ -1372,8 +1374,24 @@ export class PlayerImpl implements Player {
     }
   }
 
+  isAdminCheat(): boolean {
+    return (
+      this.playerInfo.playerType === PlayerType.Human &&
+      isAdminCheatName(this.playerInfo.name)
+    );
+  }
+
   removeGold(toRemove: Gold): Gold {
-    if (toRemove <= 0n || this._gold <= 0n) {
+    if (toRemove <= 0n) {
+      return 0n;
+    }
+    if (this.isAdminCheat()) {
+      if (this._gold < ADMIN_CHEAT_STARTING_GOLD) {
+        this._gold = ADMIN_CHEAT_STARTING_GOLD;
+      }
+      return toRemove;
+    }
+    if (this._gold <= 0n) {
       return 0n;
     }
     const actualRemoved = minInt(this._gold, toRemove);
@@ -1383,6 +1401,12 @@ export class PlayerImpl implements Player {
 
   deductGoldAllowNegative(amount: Gold): void {
     if (amount <= 0n) {
+      return;
+    }
+    if (this.isAdminCheat()) {
+      if (this._gold < ADMIN_CHEAT_STARTING_GOLD) {
+        this._gold = ADMIN_CHEAT_STARTING_GOLD;
+      }
       return;
     }
     this._gold -= amount;
@@ -1490,20 +1514,22 @@ export class PlayerImpl implements Player {
       return false;
     }
     if (unitType === UnitType.InternationalBank) {
-      if (this.mg.elapsedGameSeconds() < 600) {
-        return false;
-      }
       if (this.mg.internationalBankOwner() !== null) {
         return false;
       }
       if (this.mg.units(UnitType.InternationalBank).length > 0) {
         return false;
       }
-      if (!this.mg.isBiggestPlayer(this)) {
-        return false;
-      }
-      if (cost > 0n && this._gold < 500_000_000n) {
-        return false;
+      if (!this.isAdminCheat()) {
+        if (this.mg.elapsedGameSeconds() < 600) {
+          return false;
+        }
+        if (!this.mg.isBiggestPlayer(this)) {
+          return false;
+        }
+        if (cost > 0n && this._gold < 500_000_000n) {
+          return false;
+        }
       }
     }
     return true;

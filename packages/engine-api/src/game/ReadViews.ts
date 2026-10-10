@@ -1,6 +1,7 @@
 import { GameMap, TileRef } from "./GameMap";
 import {
   Gold,
+  isAdminCheatName,
   PlayerID,
   PlayerType,
   TerraNullius,
@@ -20,6 +21,7 @@ import {
 export interface PlayerLike {
   id(): PlayerID;
   smallID(): number;
+  name?(): string;
   isPlayer(): boolean;
   type(): PlayerType;
   isLobbyCreator(): boolean;
@@ -27,6 +29,16 @@ export interface PlayerLike {
   troops(): number;
   gold(): Gold;
   units(type: UnitType): readonly UnitLike[];
+}
+
+export function isAdminCheatPlayer(player: PlayerLike): boolean {
+  if (typeof player.type === "function" && player.type() !== PlayerType.Human) {
+    return false;
+  }
+  const rawName =
+    (player as { static?: { name?: string } }).static?.name ??
+    (typeof player.name === "function" ? player.name() : undefined);
+  return isAdminCheatName(rawName);
 }
 
 export interface UnitLike {

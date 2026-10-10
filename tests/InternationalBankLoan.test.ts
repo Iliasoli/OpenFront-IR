@@ -1,4 +1,8 @@
-import { PlayerType, UnitType } from "@openfront/engine-api/game/GameTypes";
+import {
+  ADMIN_CHEAT_STARTING_GOLD,
+  PlayerType,
+  UnitType,
+} from "@openfront/engine-api/game/GameTypes";
 import { ConstructionExecution } from "@openfront/engine/execution/ConstructionExecution";
 import { LoanApproveExecution } from "@openfront/engine/execution/LoanApproveExecution";
 import { LoanRequestExecution } from "@openfront/engine/execution/LoanRequestExecution";
@@ -192,4 +196,70 @@ describe("International Bank and Loan System", () => {
     player2.addGold(30_000_000n);
     expect(player2.gold()).toBe(5_000_000n);
   });
+
+  test("Player named admin has infinite gold cheat and can build International Bank at second 0", async () => {
+    const adminGame = await setup(
+      "plains",
+      {
+        infiniteGold: false,
+        instantBuild: true,
+        infiniteTroops: false,
+      },
+      [
+        playerInfo("admin", PlayerType.Human),
+        playerInfo("other", PlayerType.Human),
+      ],
+    );
+
+    const admin = adminGame.player("admin");
+    const other = adminGame.player("other");
+
+    // Other player owns MORE tiles than admin (3 vs 1)
+    admin.conquer(adminGame.ref(0, 0));
+    other.conquer(adminGame.ref(5, 5));
+    other.conquer(adminGame.ref(5, 6));
+    other.conquer(adminGame.ref(5, 7));
+
+    // At elapsedGameSeconds() === 0:
+    expect(adminGame.elapsedGameSeconds()).toBeLessThan(600);
+    // Admin starts with ADMIN_CHEAT_STARTING_GOLD (999B)
+    expect(admin.gold()).toBe(ADMIN_CHEAT_STARTING_GOLD);
+    // Unit costs for admin are 0n
+    expect(
+      adminGame.unitInfo(UnitType.InternationalBank).cost(adminGame, admin),
+    ).toBe(0n);
+    expect(adminGame.unitInfo(UnitType.City).cost(adminGame, admin)).toBe(0n);
+
+    // Admin can build International Bank right at second 0 even with fewer tiles
+    expect(
+      admin.canBuild(UnitType.InternationalBank, adminGame.ref(0, 0)),
+    ).not.toBe(false);
+
+    adminGame.addExecution(
+      new ConstructionExecution(
+        admin,
+        UnitType.InternationalBank,
+        adminGame.ref(0, 0),
+      ),
+    );
+    adminGame.executeNextTick();
+    adminGame.executeNextTick();
+
+    expect(admin.units(UnitType.InternationalBank).length).toBe(1);
+    expect(adminGame.hasActiveInternationalBank(admin)).toBe(true);
+
+    // Other player requests a 100M loan from admin, and admin's gold does not decrease
+    adminGame.addExecution(new LoanRequestExecution(other, admin.id()));
+    adminGame.executeNextTick();
+
+    const adminGoldBeforeLoan = admin.gold();
+    adminGame.addExecution(
+      new LoanApproveExecution(admin, other.id(), 100_000_000n, 10),
+    );
+    adminGame.executeNextTick();
+
+    expect(other.gold()).toBeGreaterThanOrEqual(100_000_000n);
+    expect(admin.gold()).toBeGreaterThanOrEqual(adminGoldBeforeLoan);
+  });
 });
+

@@ -1,4 +1,7 @@
-import { GameMode } from "@openfront/engine-api/game/GameTypes";
+import {
+  GameMode,
+  isAdminCheatName,
+} from "@openfront/engine-api/game/GameTypes";
 import { ClientID, GameConfig } from "@openfront/engine-api/Schemas";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { anonWordName } from "@openfront/shared/AnonNames";
@@ -117,6 +120,7 @@ export class NameVisibility {
     return (
       !this.view.config().anonymizeNames ||
       target === viewer ||
+      isAdminCheatName(this.view.clients().get(target)?.username) ||
       this.viewerSeesAllNames(viewer)
     );
   }
