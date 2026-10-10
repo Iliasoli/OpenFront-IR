@@ -124,8 +124,8 @@ float lineAlpha(vec2 p, vec2 a, vec2 b, float width) {
   return 1.0 - smoothstep(width, width + max(aa, 0.004), sdSegment(p, a, b));
 }
 
-// Dedicated mine glyphs. These are procedural rather than atlas-backed so they
-// cannot disappear because of sprite-atlas dimensions or asset decoding.
+// Mines and the tank factory use procedural glyphs so their icons remain
+// distinct without adding columns to the shared six-icon atlas.
 float mineGlyphAlpha(vec2 p, float atlasIdx) {
   float alpha = 0.0;
 
@@ -153,7 +153,7 @@ float mineGlyphAlpha(vec2 p, float atlasIdx) {
     alpha = max(alpha, lineAlpha(p, vec2(-0.14, -0.26), vec2(0.0, -0.10), 0.025));
     alpha = max(alpha, lineAlpha(p, vec2(0.14, -0.26), vec2(0.0, -0.10), 0.025));
     alpha = max(alpha, lineAlpha(p, vec2(0.0, -0.10), vec2(0.0, 0.28), 0.025));
-  } else {
+  } else if (atlasIdx < 9.5) {
     // Livestock Farm / Barn with gambrel roof and door cross.
     alpha = max(alpha, lineAlpha(p, vec2(0.0, -0.24), vec2(-0.16, -0.14), 0.035));
     alpha = max(alpha, lineAlpha(p, vec2(0.0, -0.24), vec2(0.16, -0.14), 0.035));
@@ -167,6 +167,26 @@ float mineGlyphAlpha(vec2 p, float atlasIdx) {
     alpha = max(alpha, lineAlpha(p, vec2(-0.08, 0.06), vec2(0.08, 0.06), 0.03));
     alpha = max(alpha, lineAlpha(p, vec2(-0.07, 0.07), vec2(0.07, 0.21), 0.025));
     alpha = max(alpha, lineAlpha(p, vec2(-0.07, 0.21), vec2(0.07, 0.07), 0.025));
+  } else {
+    // Tank factory: a saw-tooth-roof hangar with a tank at the loading bay.
+    alpha = max(alpha, lineAlpha(p, vec2(-0.25, -0.15), vec2(-0.12, -0.27), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.12, -0.27), vec2(0.0, -0.15), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(0.0, -0.15), vec2(0.12, -0.27), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(0.12, -0.27), vec2(0.25, -0.15), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.25, -0.15), vec2(-0.25, 0.20), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(0.25, -0.15), vec2(0.25, 0.20), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.25, 0.20), vec2(0.25, 0.20), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.16, -0.04), vec2(0.16, -0.04), 0.03));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.16, -0.04), vec2(-0.16, 0.11), 0.03));
+    alpha = max(alpha, lineAlpha(p, vec2(0.16, -0.04), vec2(0.16, 0.11), 0.03));
+    // Tank tracks, hull, turret and barrel.
+    alpha = max(alpha, lineAlpha(p, vec2(-0.12, 0.15), vec2(0.12, 0.15), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.10, 0.05), vec2(0.09, 0.05), 0.04));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.10, 0.05), vec2(-0.14, 0.15), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(0.09, 0.05), vec2(0.14, 0.15), 0.035));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.02, 0.04), vec2(-0.02, 0.0), 0.03));
+    alpha = max(alpha, lineAlpha(p, vec2(-0.02, 0.0), vec2(0.07, 0.0), 0.03));
+    alpha = max(alpha, lineAlpha(p, vec2(0.07, 0.0), vec2(0.15, 0.0), 0.025));
   }
 
   return clamp(alpha, 0.0, 1.0);
@@ -174,7 +194,8 @@ float mineGlyphAlpha(vec2 p, float atlasIdx) {
 
 // Per-structure-type shape SDF.
 // Atlas indices: 0=City, 1=Port, 2=Factory, 3=DefensePost, 4=SAM,
-// 5=Silo, 6=Oil Mine, 7=Gold Mine, 8=Diamond Mine, 9=Livestock Farm
+// 5=Silo, 6=Oil Mine, 7=Gold Mine, 8=Diamond Mine, 9=Livestock Farm,
+// 10=Tank Factory
 float shapeSDF(vec2 p, float R) {
   if (vAtlasIdx < 0.5)
     return length(p) - R;                     // City → circle
@@ -194,7 +215,9 @@ float shapeSDF(vec2 p, float R) {
     return length(p) - R;                     // Gold Mine → circle
   if (vAtlasIdx < 8.5)
     return sdPolygon(p, R, 4.0, PI * 0.25);   // Diamond Mine → diamond
-  return length(p) - R;                       // Livestock Farm → circle
+  if (vAtlasIdx < 9.5)
+    return length(p) - R;                     // Livestock Farm → circle
+  return sdPolygon(p, R, 7.0, PI * 0.5);       // Tank Factory → heptagon
 }
 
 void main() {

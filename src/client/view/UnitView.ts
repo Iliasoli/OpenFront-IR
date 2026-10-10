@@ -172,6 +172,9 @@ export class UnitView implements UnitLike {
   health(): number {
     return this.state.health ?? 0;
   }
+  fuel(): number | undefined {
+    return this.state.fuel ?? undefined;
+  }
   veterancy(): number {
     return this.state.veterancy;
   }

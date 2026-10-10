@@ -47,7 +47,8 @@ export type Intent =
   | TogglePauseIntent
   | UpdateGameConfigIntent
   | ToggleGameStartTimer
-  | MoveTankIntent;
+  | MoveTankIntent
+  | RefuelTankIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -69,6 +70,7 @@ export type UpgradeStructureIntent = z.infer<
 >;
 export type MoveWarshipIntent = z.infer<typeof MoveWarshipIntentSchema>;
 export type MoveTankIntent = z.infer<typeof MoveTankIntentSchema>;
+export type RefuelTankIntent = z.infer<typeof RefuelTankIntentSchema>;
 export type QuickChatIntent = z.infer<typeof QuickChatIntentSchema>;
 export type MarkDisconnectedIntent = z.infer<
   typeof MarkDisconnectedIntentSchema
@@ -513,6 +515,12 @@ export const MoveTankIntentSchema = z.object({
   tile: zb.uint(),
 });
 
+export const RefuelTankIntentSchema = z.object({
+  type: z.literal("refuel_tank"),
+  unitIds: z.array(zb.int()).nonempty(),
+  oilMineId: zb.uint(),
+});
+
 export const DeleteUnitIntentSchema = z.object({
   type: z.literal("delete_unit"),
   unitId: zb.uint(),
@@ -586,6 +594,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   UpdateGameConfigIntentSchema,
   ToggleGameStartTimerIntentSchema,
   MoveTankIntentSchema,
+  RefuelTankIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

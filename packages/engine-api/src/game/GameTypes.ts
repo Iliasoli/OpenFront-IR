@@ -12,6 +12,13 @@ function isEnumValue<T extends Record<string, string | number>>(
 
 export type PlayerID = string;
 
+export const TANK_MAX_FUEL = 100;
+export const TANK_FUEL_PER_TILE = 1;
+export const TANK_FUEL_PER_SHOT = 1;
+export const TANK_REFUEL_PER_TICK = 0.5;
+export const TANK_ASSAULT_MIN_POWER = 250_000;
+export const TANK_ASSAULT_TROOP_RATE = 0.25;
+
 export type Tick = number;
 
 export type Gold = bigint;

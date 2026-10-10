@@ -65,6 +65,9 @@ export class ReplayUnitView {
   health(): number {
     return this.state.health ?? 0;
   }
+  fuel(): number | undefined {
+    return this.state.fuel ?? undefined;
+  }
   /** Where a nuke will land, if it's heading somewhere. */
   targetTile(): TileRef | undefined {
     return (this.state.targetTile ?? undefined) as TileRef | undefined;

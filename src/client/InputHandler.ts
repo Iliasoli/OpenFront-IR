@@ -47,6 +47,17 @@ export class TankMoveDestinationClickEvent implements GameEvent {
   ) {}
 }
 
+export class TankRefuelModeEvent implements GameEvent {
+  constructor(public readonly active: boolean) {}
+}
+
+export class TankRefuelDestinationClickEvent implements GameEvent {
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+  ) {}
+}
+
 /**
  * Event emitted when one or more warships are selected or deselected.
  * For single selection: unit is set, units is empty.
@@ -76,6 +87,9 @@ export class MouseMoveEvent implements GameEvent {
 }
 
 export class ContextMenuEvent implements GameEvent {
+  /** Set by unit-selection handlers when a world click targets a unit. */
+  handled = false;
+
   constructor(
     public readonly x: number,
     public readonly y: number,
@@ -328,6 +342,7 @@ export class InputHandler {
   private keybindAndEvent: Array<[string, KeybindEntry]> = [];
   private coordinateGridEnabled = false;
   private tankMoveModeActive = false;
+  private tankRefuelModeActive = false;
 
   private readonly PAN_SPEED = 5;
   private readonly ZOOM_SPEED = 10;
@@ -364,12 +379,20 @@ export class InputHandler {
     this.eventBus.on(EmojiTableVisibleEvent, this.onEmojiTableVisible);
     this.eventBus.off(TankMoveModeEvent, this.onTankMoveMode);
     this.eventBus.on(TankMoveModeEvent, this.onTankMoveMode);
+    this.eventBus.off(TankRefuelModeEvent, this.onTankRefuelMode);
+    this.eventBus.on(TankRefuelModeEvent, this.onTankRefuelMode);
 
     this.initializePointerAndKeyboardEvents();
   }
 
   private onTankMoveMode = (event: TankMoveModeEvent) => {
     this.tankMoveModeActive = event.active;
+    if (event.active) this.tankRefuelModeActive = false;
+  };
+
+  private onTankRefuelMode = (event: TankRefuelModeEvent) => {
+    this.tankRefuelModeActive = event.active;
+    if (event.active) this.tankMoveModeActive = false;
   };
 
   private onEmojiTableVisible = (e: EmojiTableVisibleEvent) => {
@@ -548,6 +571,7 @@ export class InputHandler {
       "buildGoldMine",
       "buildDiamondMine",
       "buildLivestockFarm",
+      "buildTankFactory",
     ];
     buildKeybinds = buildKeybinds.map((i: string): string => {
       return this.keybinds[i];
@@ -1177,9 +1201,15 @@ export class InputHandler {
       Math.abs(event.x - this.lastPointerDownX) +
       Math.abs(event.y - this.lastPointerDownY);
     if (dist < this.DRAG_THRESHOLD_PX) {
+      if (this.tankRefuelModeActive) {
+        this.eventBus.emit(
+          new TankRefuelDestinationClickEvent(event.x, event.y),
+        );
+        event.preventDefault();
+        return;
+      }
       if (this.tankMoveModeActive) {
         this.eventBus.emit(new TankMoveDestinationClickEvent(event.x, event.y));
-        this.eventBus.emit(new TankMoveModeEvent(false));
         event.preventDefault();
         return;
       }
@@ -1512,6 +1542,7 @@ export class InputHandler {
       { key: "buildGoldMine", type: UnitType.GoldMine },
       { key: "buildDiamondMine", type: UnitType.DiamondMine },
       { key: "buildLivestockFarm", type: UnitType.LivestockFarm },
+      { key: "buildTankFactory", type: UnitType.TankFactory },
     ];
     for (const { key, type } of buildKeybinds) {
       if (this.keybindMatchesEvent({ code, shiftKey }, this.keybinds[key]))
@@ -1582,6 +1613,8 @@ export class InputHandler {
     this.listenerAbort = null;
     this.eventBus.off(EmojiTableVisibleEvent, this.onEmojiTableVisible);
     this.eventBus.off(UnitSelectionEvent, this.onUnitSelection);
+    this.eventBus.off(TankMoveModeEvent, this.onTankMoveMode);
+    this.eventBus.off(TankRefuelModeEvent, this.onTankRefuelMode);
     // Includes the 800ms long-press timer a touch pointerdown arms: aborting
     // the listeners does not cancel it, so without this it can still fire
     // after teardown, emitting TouchLongPressStartEvent on the page-global

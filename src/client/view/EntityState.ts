@@ -59,6 +59,7 @@ export function unitStateFromUpdate(u: UnitUpdate): UnitState {
     waitTicks: u.nukeState?.waitTicks ?? 0,
     markedForDeletion: u.markedForDeletion,
     health: u.health ?? null,
+    fuel: u.fuel ?? null,
     underConstruction: u.underConstruction ?? false,
     targetUnitId: u.targetUnitId ?? null,
     targetTile: u.targetTile ?? null,
@@ -93,6 +94,7 @@ export function applyUnitUpdateInPlace(target: UnitState, u: UnitUpdate): void {
   target.waitTicks = u.nukeState?.waitTicks ?? 0;
   target.markedForDeletion = u.markedForDeletion;
   target.health = u.health ?? null;
+  target.fuel = u.fuel ?? null;
   target.underConstruction = u.underConstruction ?? false;
   target.targetUnitId = u.targetUnitId ?? null;
   target.targetTile = u.targetTile ?? null;

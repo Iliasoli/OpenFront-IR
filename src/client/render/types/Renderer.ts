@@ -109,6 +109,7 @@ export interface UnitState {
   waitTicks: number;
   markedForDeletion: number | false; // -1 -> false, else tick
   health: number | null;
+  fuel?: number | null;
   underConstruction: boolean;
   targetUnitId: number | null;
   targetTile: number | null;

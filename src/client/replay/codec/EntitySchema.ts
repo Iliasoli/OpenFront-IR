@@ -416,6 +416,7 @@ export const UNIT_FIELDS: readonly FieldDef<UnitFields>[] = [
     ["samUpgradeTargetLevel", maybe(F64, null)],
     ["samUpgradeDuration", maybe(F64, null)],
   ),
+  field(["fuel", maybe(F64, null)]),
 ];
 
 for (const [name, schema] of [

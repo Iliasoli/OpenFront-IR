@@ -60,6 +60,7 @@ const STRUCTURE_ORDER = [
   UT_GOLD_MINE,
   UT_DIAMOND_MINE,
   UT_LIVESTOCK_FARM,
+  UT_TANK_FACTORY,
 ] as const;
 
 /** Max characters per level label (handles up to "99"). */
@@ -175,11 +176,6 @@ export class StructureLevelPass {
     for (let i = 0; i < STRUCTURE_ORDER.length; i++) {
       this.typeToAtlasCol.set(STRUCTURE_ORDER[i], i);
     }
-    this.typeToAtlasCol.set(
-      UT_TANK_FACTORY,
-      this.typeToAtlasCol.get(UT_FACTORY)!,
-    );
-
     this.kernTable = new Int8Array(CHAR_RANGE * CHAR_RANGE); // digits don't kern
 
     // Classic bitmap font (round_6x6_modified) — digits only.

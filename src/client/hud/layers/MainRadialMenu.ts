@@ -83,6 +83,7 @@ export class MainRadialMenu implements Controller {
   init() {
     this.radialMenu.init();
     this.eventBus.on(ContextMenuEvent, (event) => {
+      if (event.handled) return;
       const worldCoords = this.transformHandler.screenToWorldCoordinates(
         event.x,
         event.y,

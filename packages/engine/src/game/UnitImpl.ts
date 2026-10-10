@@ -3,6 +3,7 @@ import {
   MessageType,
   NukeState,
   SamLauncherState,
+  TANK_MAX_FUEL,
   TerraNullius,
   Tick,
   TrainType,
@@ -43,6 +44,7 @@ export class UnitImpl implements Unit {
   private _targetPlayer: Player | TerraNullius | undefined;
   private _targetUnit: Unit | undefined;
   private _health: bigint;
+  private _fuel: number | undefined;
   private _lastTile: TileRef;
   private _transportShipState: TransportShipState | undefined = undefined;
   private _warshipState: WarshipState | undefined = undefined;
@@ -78,6 +80,7 @@ export class UnitImpl implements Unit {
   ) {
     this._lastTile = _tile;
     this._health = toInt(this.mg.unitInfo(_type).maxHealth ?? 1);
+    this._fuel = _type === UnitType.Tank ? TANK_MAX_FUEL : undefined;
     this._targetTile =
       "targetTile" in params ? (params.targetTile ?? undefined) : undefined;
     this._targetPlayer =
@@ -128,6 +131,7 @@ export class UnitImpl implements Unit {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.TankFactory:
         this.mg.stats().unitBuild(_owner, this._type);
     }
   }
@@ -190,6 +194,7 @@ export class UnitImpl implements Unit {
       targetable: this._targetable,
       lastPos: this._lastTile,
       health: this.hasHealth() ? Number(this._health) : undefined,
+      fuel: this._fuel,
       underConstruction: this._underConstruction,
       targetUnitId: this._targetUnit?.id() ?? undefined,
       targetTile: this.targetTile() ?? undefined,
@@ -306,6 +311,18 @@ export class UnitImpl implements Unit {
       this.veterancy(),
       this.mg.config().warshipVeterancyHealthBonus(),
     );
+  }
+
+  fuel(): number | undefined {
+    return this._fuel;
+  }
+
+  setFuel(fuel: number): void {
+    if (this._type !== UnitType.Tank) return;
+    const nextFuel = Math.max(0, Math.min(TANK_MAX_FUEL, fuel));
+    if (this._fuel === nextFuel) return;
+    this._fuel = nextFuel;
+    this.mg.addUpdate(this.toUpdate());
   }
 
   modifyHealth(delta: number, attacker?: Player): void {
@@ -876,6 +893,7 @@ export class UnitImpl implements Unit {
             duration: this._samLauncherState.duration,
           }
         : null,
+      fuel: this._fuel,
     };
   }
 
@@ -893,6 +911,8 @@ export class UnitImpl implements Unit {
       s.targetPlayer !== null ? r.owner(s.targetPlayer) : undefined;
     this._targetUnit = r.unitOrNull(s.targetUnit) ?? undefined;
     this._health = s.health;
+    this._fuel =
+      s.fuel ?? (this._type === UnitType.Tank ? TANK_MAX_FUEL : undefined);
     this._transportShipState = s.transportShipState
       ? { ...s.transportShipState }
       : undefined;
@@ -992,6 +1012,7 @@ export const UnitSnapshot = snapshotType({
       })
       .nullable(),
     resourceGoldProduced: z.bigint().optional(),
+    fuel: zNum().optional(),
   }),
 });
 export type UnitState = z.infer<typeof UnitSnapshot.schema>;

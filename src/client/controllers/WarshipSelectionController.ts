@@ -8,6 +8,9 @@ import {
   MouseUpEvent,
   SelectAllWarshipsEvent,
   TankMoveDestinationClickEvent,
+  TankMoveModeEvent,
+  TankRefuelDestinationClickEvent,
+  TankRefuelModeEvent,
   TouchEvent,
   UnitSelectionEvent,
   WarshipSelectionBoxCancelEvent,
@@ -16,10 +19,15 @@ import {
 } from "../InputHandler";
 import { MapRenderer } from "../render/gl";
 import { TransformHandler } from "../TransformHandler";
-import { MoveTankIntentEvent, MoveWarshipIntentEvent } from "../Transport";
+import {
+  MoveTankIntentEvent,
+  MoveWarshipIntentEvent,
+  RefuelTankIntentEvent,
+} from "../Transport";
 import { GameView, UnitView } from "../view";
 
 const WARSHIP_SELECTION_RADIUS = 10;
+const TANK_SELECTION_RADIUS = 1;
 
 /**
  * Controller for warship selection state + click handling.
@@ -79,8 +87,12 @@ export class WarshipSelectionController implements Controller {
 
     // Warship select/move click flow (previously in the deleted UnitLayer).
     this.eventBus.on(MouseUpEvent, (e) => this.onMouseUp(e));
+    this.eventBus.on(ContextMenuEvent, (e) => this.onContextMenu(e));
     this.eventBus.on(TankMoveDestinationClickEvent, (e) =>
       this.moveTanksTo(e.x, e.y),
+    );
+    this.eventBus.on(TankRefuelDestinationClickEvent, (e) =>
+      this.refuelTanksAt(e.x, e.y),
     );
     this.eventBus.on(TouchEvent, (e) => this.onTouch(e));
     this.eventBus.on(WarshipSelectionBoxCompleteEvent, (e) =>
@@ -187,24 +199,16 @@ export class WarshipSelectionController implements Controller {
       clickRef = this.game.ref(cell.x, cell.y);
     }
     if (!this.game.isWater(clickRef)) {
-      const myPlayer = this.game.myPlayer();
-      const tanks = this.game
-        .units(UnitType.Tank)
-        .filter(
-          (u) =>
-            u.isActive() &&
-            u.owner() === myPlayer &&
-            this.game.manhattanDist(u.tile(), clickRef) <=
-              WARSHIP_SELECTION_RADIUS,
-        )
-        .sort(
-          (a, b) =>
-            this.game.manhattanDist(a.tile(), clickRef) -
-            this.game.manhattanDist(b.tile(), clickRef),
-        );
-      if (tanks.length > 0)
-        this.eventBus.emit(new UnitSelectionEvent(tanks[0], true));
+      const tank = this.findTankNearCell(clickRef);
+      if (tank)
+        this.eventBus.emit(new UnitSelectionEvent(tank, true));
+      else if (this.selectedTank !== null || this.multiSelectedTanks.length > 0)
+        this.eventBus.emit(new UnitSelectionEvent(null, false));
       return;
+    }
+
+    if (this.selectedTank !== null || this.multiSelectedTanks.length > 0) {
+      this.eventBus.emit(new UnitSelectionEvent(null, false));
     }
 
     if (this.multiSelectedWarships.length > 0) {
@@ -234,6 +238,51 @@ export class WarshipSelectionController implements Controller {
     }
   }
 
+  /**
+   * When left-click opens the radial menu, the input handler emits a
+   * ContextMenuEvent instead of MouseUpEvent. Let a click on a tank select it
+   * first, and mark the event so the radial menu and player info overlay do
+   * not cover the tank controls.
+   */
+  private onContextMenu(event: ContextMenuEvent): void {
+    const cell = this.transformHandler.screenToWorldCoordinates(
+      event.x,
+      event.y,
+    );
+    if (!this.game.isValidCoord(cell.x, cell.y)) return;
+    const tank = this.findTankNearCell(this.game.ref(cell.x, cell.y));
+    if (!tank) {
+      if (this.selectedTank !== null || this.multiSelectedTanks.length > 0) {
+        this.eventBus.emit(new UnitSelectionEvent(null, false));
+      }
+      return;
+    }
+
+    event.handled = true;
+    this.eventBus.emit(new UnitSelectionEvent(tank, true));
+  }
+
+  private findTankNearCell(clickRef: TileRef): UnitView | null {
+    const myPlayer = this.game.myPlayer();
+    if (!myPlayer) return null;
+    return (
+      this.game
+        .units(UnitType.Tank)
+        .filter(
+          (unit) =>
+            unit.isActive() &&
+            unit.owner() === myPlayer &&
+            this.game.manhattanDist(unit.tile(), clickRef) <=
+              TANK_SELECTION_RADIUS,
+        )
+        .sort(
+          (a, b) =>
+            this.game.manhattanDist(a.tile(), clickRef) -
+            this.game.manhattanDist(b.tile(), clickRef),
+        )[0] ?? null
+    );
+  }
+
   private moveTanksTo(screenX: number, screenY: number): void {
     const myPlayer = this.game.myPlayer();
     if (!myPlayer) return;
@@ -245,18 +294,56 @@ export class WarshipSelectionController implements Controller {
     const tile = this.game.ref(cell.x, cell.y);
     if (this.game.isWater(tile) || this.game.isImpassable(tile)) return;
 
+    const ids = this.selectedTankIds(myPlayer);
+    if (ids.length > 0) {
+      this.eventBus.emit(new MoveTankIntentEvent(ids, tile));
+      this.eventBus.emit(new TankMoveModeEvent(false));
+    }
+  }
+
+  private refuelTanksAt(screenX: number, screenY: number): void {
+    const myPlayer = this.game.myPlayer();
+    if (!myPlayer) return;
+    const cell = this.transformHandler.screenToWorldCoordinates(
+      screenX,
+      screenY,
+    );
+    if (!this.game.isValidCoord(cell.x, cell.y)) return;
+    const clickedTile = this.game.ref(cell.x, cell.y);
+    const mine = this.game
+      .units(UnitType.OilMine)
+      .filter(
+        (unit) =>
+          unit.isActive() &&
+          unit.owner() === myPlayer &&
+          this.game.manhattanDist(unit.tile(), clickedTile) <= 1,
+      )
+      .sort(
+        (a, b) =>
+          this.game.manhattanDist(a.tile(), clickedTile) -
+          this.game.manhattanDist(b.tile(), clickedTile),
+      )[0];
+    if (!mine) return;
+
+    const ids = this.selectedTankIds(myPlayer);
+    if (ids.length > 0) {
+      this.eventBus.emit(new RefuelTankIntentEvent(ids, mine.id()));
+      this.eventBus.emit(new TankRefuelModeEvent(false));
+    }
+  }
+
+  private selectedTankIds(
+    myPlayer: NonNullable<ReturnType<GameView["myPlayer"]>>,
+  ): number[] {
     const selected =
       this.multiSelectedTanks.length > 0
         ? this.multiSelectedTanks
         : this.selectedTank
           ? [this.selectedTank]
-          : this.game
-              .units(UnitType.Tank)
-              .filter((unit) => unit.isActive() && unit.owner() === myPlayer);
-    const ids = selected
+          : [];
+    return selected
       .filter((unit) => unit.isActive() && unit.owner() === myPlayer)
       .map((unit) => unit.id());
-    if (ids.length > 0) this.eventBus.emit(new MoveTankIntentEvent(ids, tile));
   }
 
   /**

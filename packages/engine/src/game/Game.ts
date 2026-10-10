@@ -265,6 +265,10 @@ export interface Unit extends UnitLike {
   maxHealth(): number;
   modifyHealth(delta: number, attacker?: Player): void;
 
+  // Tanks
+  fuel(): number | undefined;
+  setFuel(fuel: number): void;
+
   // Warship veterancy
   /** Current veterancy level from warshipState (0 for non-warships). */
   veterancy(): number;

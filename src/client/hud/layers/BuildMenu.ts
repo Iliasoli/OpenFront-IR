@@ -29,6 +29,7 @@ import { GameView } from "../../view";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
+const tankFactoryIcon = assetUrl("images/TankFactoryStructureIcon.svg");
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
 const mirvIcon = assetUrl("images/MIRVIcon.svg");
 const missileSiloIcon = assetUrl("images/MissileSiloIconWhite.svg");
@@ -124,7 +125,7 @@ export const buildTable: BuildItemDisplay[][] = [
     },
     {
       unitType: UnitType.TankFactory,
-      icon: factoryIcon,
+      icon: tankFactoryIcon,
       description: "build_menu.desc.tank_factory",
       key: "unit_type.tank_factory",
       countable: true,

@@ -62,6 +62,7 @@ const STRUCTURE_ORDER = [
   UT_GOLD_MINE,
   UT_DIAMOND_MINE,
   UT_LIVESTOCK_FARM,
+  UT_TANK_FACTORY,
 ] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
@@ -125,7 +126,7 @@ export class StructurePass {
 
   private instanceCount = 0;
 
-  /** unitType string → atlas column index (0–8) */
+  /** unitType string → atlas/procedural glyph index */
   private typeToAtlasCol = new Map<string, number>();
   private mapW: number;
 
@@ -154,11 +155,6 @@ export class StructurePass {
     for (let i = 0; i < STRUCTURE_ORDER.length; i++) {
       this.typeToAtlasCol.set(STRUCTURE_ORDER[i], i);
     }
-    this.typeToAtlasCol.set(
-      UT_TANK_FACTORY,
-      this.typeToAtlasCol.get(UT_FACTORY)!,
-    );
-
     // Compile shaders
     this.program = createProgram(
       gl,

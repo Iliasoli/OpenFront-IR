@@ -15,10 +15,16 @@ import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { keyed } from "lit/directives/keyed.js";
 import { Controller } from "../../Controller";
-import { AttackRatioEvent, TankMoveModeEvent } from "../../InputHandler";
+import {
+  AttackRatioEvent,
+  TankMoveModeEvent,
+  TankRefuelModeEvent,
+  UnitSelectionEvent,
+} from "../../InputHandler";
 import { UIState } from "../../UIState";
 import { USER_SETTINGS_CHANGED_EVENT, UserSettings } from "../../UserSettings";
 import { getGamesPlayed, translateText } from "../../Utils";
+import { SendDeleteUnitIntentEvent } from "../../Transport";
 import { GameView } from "../../view";
 import { PlayerView } from "../../view/PlayerView";
 import { goldCoinIcon, soldierIcon } from "../HotbarIcons";
@@ -69,6 +75,12 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private _tankMoveMode = false;
+
+  @state()
+  private _tankRefuelMode = false;
+
+  @state()
+  private _selectedTankIds: number[] = [];
 
   private _troopRateIsIncreasing: boolean = true;
 
@@ -122,6 +134,27 @@ export class ControlPanel extends LitElement implements Controller {
     });
     this.eventBus.on(TankMoveModeEvent, (event) => {
       this._tankMoveMode = event.active;
+      this.requestUpdate();
+    });
+    this.eventBus.on(TankRefuelModeEvent, (event) => {
+      this._tankRefuelMode = event.active;
+      this.requestUpdate();
+    });
+    this.eventBus.on(UnitSelectionEvent, (event) => {
+      const selected = event.isSelected
+        ? [...event.units, ...(event.unit ? [event.unit] : [])]
+        : [];
+      const player = this.game.myPlayer();
+      this._selectedTankIds = selected
+        .filter(
+          (unit) =>
+            unit.type() === UnitType.Tank &&
+            unit.isActive() &&
+            unit.owner() === player,
+        )
+        .map((unit) => unit.id());
+      this.eventBus.emit(new TankMoveModeEvent(false));
+      this.eventBus.emit(new TankRefuelModeEvent(false));
       this.requestUpdate();
     });
   }
@@ -513,20 +546,40 @@ export class ControlPanel extends LitElement implements Controller {
 
   private renderTankMoveButton() {
     const player = this.game?.myPlayer();
-    if (
-      !player ||
-      !player.isAlive() ||
-      !this.game
-        .units(UnitType.Tank)
-        .some((unit) => unit.isActive() && unit.owner() === player)
-    )
+    const selectedTanks = player
+      ? this.game
+          .units(UnitType.Tank)
+          .filter(
+            (unit) =>
+              this._selectedTankIds.includes(unit.id()) &&
+              unit.isActive() &&
+              unit.owner() === player,
+          )
+      : [];
+    const tankToDisassemble =
+      selectedTanks.length === 1 ? selectedTanks[0] : undefined;
+    const disassemblyTileOwner = tankToDisassemble
+      ? this.game.owner(tankToDisassemble.tile())
+      : null;
+    const canDisassemble =
+      tankToDisassemble !== undefined &&
+      player !== null &&
+      !this.game.inSpawnPhase() &&
+      disassemblyTileOwner !== null &&
+      disassemblyTileOwner.isPlayer() &&
+      disassemblyTileOwner.id() === player.id();
+    if (!player || !player.isAlive() || selectedTanks.length === 0)
       return html``;
 
     return html`
       <div class="flex items-center justify-end gap-2 mb-1">
-        ${this._tankMoveMode
-          ? html`<span class="text-xs font-medium text-amber-200"
-              >${translateText("control_panel.tank_move_prompt")}</span
+        ${this._tankMoveMode || this._tankRefuelMode
+          ? html`<span class="text-xs font-medium text-amber-100"
+              >${translateText(
+                this._tankRefuelMode
+                  ? "control_panel.tank_refuel_prompt"
+                  : "control_panel.tank_move_prompt",
+              )}</span
             >`
           : ""}
         <button
@@ -536,8 +589,10 @@ export class ControlPanel extends LitElement implements Controller {
             ? "border-amber-300 bg-amber-500/30 text-amber-100"
             : "border-sky-300/70 bg-slate-900/85 text-white hover:bg-sky-900/80"}"
           aria-pressed=${this._tankMoveMode}
-          @click=${() =>
-            this.eventBus.emit(new TankMoveModeEvent(!this._tankMoveMode))}
+          @click=${() => {
+            this.eventBus.emit(new TankRefuelModeEvent(false));
+            this.eventBus.emit(new TankMoveModeEvent(!this._tankMoveMode));
+          }}
         >
           <img
             src=${tankIcon}
@@ -554,6 +609,40 @@ export class ControlPanel extends LitElement implements Controller {
             )}</span
           >
         </button>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-bold shadow-md ${this
+            ._tankRefuelMode
+            ? "border-emerald-300 bg-emerald-500/30 text-emerald-100"
+            : "border-emerald-300/70 bg-slate-900/85 text-white hover:bg-emerald-900/80"}"
+          aria-pressed=${this._tankRefuelMode}
+          @click=${() => {
+            this.eventBus.emit(new TankMoveModeEvent(false));
+            this.eventBus.emit(new TankRefuelModeEvent(!this._tankRefuelMode));
+          }}
+        >
+          <span
+            >${translateText(
+              this._tankRefuelMode
+                ? "control_panel.tank_refuel_cancel"
+                : "control_panel.tank_refuel_button",
+            )}</span
+          >
+        </button>
+        ${canDisassemble
+          ? html`<button
+              type="button"
+              class="flex items-center rounded-md border border-red-300/70 bg-slate-900/85 px-2 py-1 text-xs font-bold text-white shadow-md hover:bg-red-900/80"
+              @click=${() => {
+                this.eventBus.emit(
+                  new SendDeleteUnitIntentEvent(tankToDisassemble!.id()),
+                );
+                this.eventBus.emit(new UnitSelectionEvent(null, false));
+              }}
+            >
+              ${translateText("control_panel.tank_disassemble_button")}
+            </button>`
+          : ""}
       </div>
     `;
   }

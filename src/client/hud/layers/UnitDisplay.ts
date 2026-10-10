@@ -20,6 +20,7 @@ import {
   cityIcon,
   defensePostIcon,
   factoryIcon,
+  tankFactoryIcon,
   goldCoinIcon,
   hydrogenBombIcon,
   mirvIcon,
@@ -44,6 +45,7 @@ export class UnitDisplay extends LitElement implements Controller {
   private _cities = 0;
   private _warships = 0;
   private _factories = 0;
+  private _tankFactories = 0;
   private _oilMines = 0;
   private _goldMines = 0;
   private _diamondMines = 0;
@@ -131,6 +133,7 @@ export class UnitDisplay extends LitElement implements Controller {
     this._defensePost = player.totalUnitLevels(UnitType.DefensePost);
     this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
     this._factories = player.totalUnitLevels(UnitType.Factory);
+    this._tankFactories = player.totalUnitLevels(UnitType.TankFactory);
     this._warships = player.totalUnitLevels(UnitType.Warship);
     this._oilMines = player.totalUnitLevels(UnitType.OilMine);
     this._goldMines = player.totalUnitLevels(UnitType.GoldMine);
@@ -255,6 +258,13 @@ export class UnitDisplay extends LitElement implements Controller {
             UnitType.LivestockFarm,
             "livestock_farm",
             this.keybinds["buildLivestockFarm"]?.key ?? "Shift+Digit4",
+          )}
+          ${this.renderUnitItem(
+            tankFactoryIcon,
+            this._tankFactories,
+            UnitType.TankFactory,
+            "tank_factory",
+            this.keybinds["buildTankFactory"]?.key ?? "Shift+Digit5",
           )}
         </div>
       </div>

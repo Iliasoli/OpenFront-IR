@@ -3,6 +3,9 @@ import {
   PlayerProfile,
   PlayerType,
   Relation,
+  TANK_ASSAULT_MIN_POWER,
+  TANK_ASSAULT_TROOP_RATE,
+  TANK_MAX_FUEL,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { AllianceView } from "@openfront/engine-api/game/GameUpdates";
@@ -147,9 +150,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     this.eventBus.on(MouseMoveEvent, (e: MouseMoveEvent) =>
       this.onMouseEvent(e),
     );
-    this.eventBus.on(ContextMenuEvent, (e: ContextMenuEvent) =>
-      this.maybeShow(e.x, e.y),
-    );
+    this.eventBus.on(ContextMenuEvent, (e: ContextMenuEvent) => {
+      if (!e.handled) this.maybeShow(e.x, e.y);
+    });
     this.eventBus.on(TouchEvent, (e: TouchEvent) => this.maybeShow(e.x, e.y));
     this.eventBus.on(CloseRadialMenuEvent, () => this.hide());
     this.eventBus.on(SpawnBarVisibleEvent, (e) => {
@@ -868,9 +871,38 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         </div>
         <div class="mt-1">
           <div class="text-sm opacity-80">${unit.type()}</div>
-          ${unit.hasHealth()
-            ? html` <div class="text-sm">Health: ${unit.health()}</div> `
-            : ""}
+          ${unit.type() === UnitType.Tank
+            ? html`
+                <div class="text-sm">
+                  ${translateText("control_panel.tank_fuel", {
+                    fuel: Math.floor(unit.fuel() ?? 0),
+                    maxFuel: TANK_MAX_FUEL,
+                  })}
+                </div>
+                <div class="text-sm">
+                  ${translateText("control_panel.tank_hull", {
+                    health: unit.health(),
+                  })}
+                </div>
+                <div class="text-sm">
+                  ${translateText("control_panel.tank_assault_power", {
+                    power: renderTroops(
+                      Math.max(
+                        TANK_ASSAULT_MIN_POWER,
+                        Math.floor(
+                          unit.owner().troops() * TANK_ASSAULT_TROOP_RATE,
+                        ),
+                      ),
+                    ),
+                  })}
+                </div>
+                <div class="text-xs opacity-70">
+                  ${translateText("control_panel.tank_fuel_rates")}
+                </div>
+              `
+            : unit.hasHealth()
+              ? html` <div class="text-sm">Health: ${unit.health()}</div> `
+              : ""}
           ${unit.type() === UnitType.TransportShip
             ? html`
                 <div class="text-sm">

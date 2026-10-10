@@ -12,7 +12,7 @@
  *   UnitState.veterancy → one instance per level (x, y, slot) → solid gold rect
  */
 
-import { UnitType } from "@openfront/engine-api/game/GameTypes";
+import { TANK_MAX_FUEL, UnitType } from "@openfront/engine-api/game/GameTypes";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import { maxHealthWithVeterancy } from "@openfront/engine-lib/game/Veterancy";
 import type { RendererConfig, UnitState } from "../../types";
@@ -140,9 +140,16 @@ export class BarPass {
     this.veterancyCount = 0;
 
     // --- Health bars + veterancy pips (warships) ---
-    // Only warships carry health among mobile units, so this loop is effectively
-    // warship-only.
+    // Tanks use this bar for fuel; their hull health remains a separate combat
+    // value. Warships continue to show damaged-hull health here.
     for (const unit of mobileUnits.values()) {
+      if (unit.unitType === UnitType.Tank) {
+        if (unit.fuel !== null && unit.fuel !== undefined) {
+          this.pushHealth(unit, unit.fuel / TANK_MAX_FUEL);
+        }
+        continue;
+      }
+      if (unit.unitType !== UnitType.Warship) continue;
       if (unit.health === null || unit.health <= 0) continue;
       // Veteran warships have a higher effective max health, so a full veteran
       // ship reads as full. Shared with the engine's UnitImpl.maxHealth().

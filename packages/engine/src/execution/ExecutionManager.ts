@@ -27,6 +27,7 @@ import { NationExecution } from "./NationExecution";
 import { NoOpExecution } from "./NoOpExecution";
 import { PauseExecution } from "./PauseExecution";
 import { QuickChatExecution } from "./QuickChatExecution";
+import { RefuelTankExecution } from "./RefuelTankExecution";
 import { RetreatExecution } from "./RetreatExecution";
 import { SpawnExecution } from "./SpawnExecution";
 import { TargetPlayerExecution } from "./TargetPlayerExecution";
@@ -83,6 +84,12 @@ export class Executor {
         return new MoveWarshipExecution(player, intent.unitIds, intent.tile);
       case "move_tank":
         return new MoveTankExecution(player, intent.unitIds, intent.tile);
+      case "refuel_tank":
+        return new RefuelTankExecution(
+          player,
+          intent.unitIds,
+          intent.oilMineId,
+        );
       case "spawn":
         // fromIntent: this one came off the wire, so it is subject to the
         // spawn-phase gate that internal spawns are not.

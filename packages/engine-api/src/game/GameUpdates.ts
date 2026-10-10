@@ -205,6 +205,7 @@ export interface UnitUpdate {
   targetUnitId?: number; // Only for trade ships
   targetTile?: TileRef; // Only for nukes
   health?: number;
+  fuel?: number; // Only for tanks
   underConstruction?: boolean;
   missileTimerQueue: number[];
   level: number;
